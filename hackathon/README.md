@@ -1,218 +1,201 @@
 # Hackathon Demo - Digital Director of Needs
 
-## Quick Start (8-Hour Build)
+## 8-Hour Build: AI Contact Center Assistant
 
-This simplified demo showcases the core AI capabilities of the Digital Director of Needs platform using a local Streamlit UI and mock Salesforce data.
+This demo showcases how GPT-4o can analyze customer messages in real-time to classify intents, recommend actions, and detect fraud patterns—helping contact center agents respond faster and more effectively.
+
+## Objectives
+
+**Problem:** Agents need instant context and recommendations when customers contact support.
+
+**Solution:** AI processes every message to:
+- Understand what customers need (intent classification)
+- Suggest the best response strategy (next-best-actions)
+- Flag suspicious activity (fraud detection)
+
+**Success Metrics:**
+- Intent accuracy: 90%+ on test messages
+- Response time: <5 seconds per analysis
+- Fraud detection: Identify risk patterns with explanations
 
 ## What's Included
 
-- ✅ **Stage 1:** Intent Classification (GPT-4o)
-- ✅ **Stage 3:** Next-Best-Action Recommendations (GPT-4o)
-- ✅ **Stage 4:** Fraud Detection (Pattern matching + LLM reasoning)
-- ✅ **Mock Data:** 15-20 simulated customer profiles
-- ✅ **Streamlit UI:** Interactive demo interface
+✅ **Intent Classification** - 20 customer intent categories (GPT-4o, temp=0.3)  
+✅ **Next-Best-Action Engine** - AI-recommended responses (GPT-4o, temp=0.7)  
+✅ **Fraud Detection** - Risk scoring with reasoning (GPT-4o, temp=0.2)  
+✅ **Mock Customer Data** - 15-20 simulated profiles with history  
+✅ **Streamlit UI** - Interactive demo at localhost:8501
 
-## What's NOT Included (Production Features)
+## What's Simplified
 
-- ❌ Stage 2: Live Salesforce API integration (using mock data instead)
-- ❌ Stage 5: Repeat caller analysis (requires historical database)
-- ❌ Azure resource provisioning (local execution only)
-- ❌ Copilot Studio UI (using Streamlit instead)
+❌ Live Salesforce integration (using mock data)  
+❌ Cloud deployment (runs locally)  
+❌ Repeat caller analysis (requires historical database)  
+❌ Production UI (demo uses Streamlit vs. Copilot Studio)
 
-## Prerequisites
+## Data Sources
 
-- Python 3.10 or higher
-- Azure OpenAI API access OR OpenAI API key
-- 8GB RAM minimum
-- Internet connection for API calls
+**Mock Customer Profiles:**
+- 15-20 simulated insurance customers
+- Policy details (type, status, coverage)
+- Interaction history (recent calls, sentiment)
+- Payment history and account status
+- Predefined fraud indicators for testing
 
-## Installation
+**Future Production Sources:**
+- Salesforce CRM (customer 360° data)
+- Call recordings and transcripts
+- Transaction systems
+- Historical fraud cases
+
+## Quick Setup
+
+### Prerequisites
+
+- Python 3.10+
+- Azure OpenAI access OR OpenAI API key
+- 15 minutes setup time
+
+### Install
 
 ```bash
-# Navigate to hackathon folder
 cd hackathon
 
 # Create virtual environment
 python -m venv .venv
-
-# Activate virtual environment
-# macOS/Linux:
-source .venv/bin/activate
-# Windows:
-.venv\Scripts\activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
-```
 
-## Configuration
-
-1. Copy the environment template:
-```bash
+# Configure API key
 cp .env.example .env
+# Edit .env with your Azure OpenAI or OpenAI API key
 ```
 
-2. Edit `.env` with your API credentials:
+### Configure API Access
 
-**Option A: Azure OpenAI (Preferred)**
+Edit `.env` file:
+
+**Option A - Azure OpenAI:**
 ```env
-AZURE_OPENAI_API_KEY=your_azure_key_here
+USE_AZURE=true
+AZURE_OPENAI_API_KEY=your_key
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_API_VERSION=2024-02-15-preview
 AZURE_OPENAI_DEPLOYMENT_INTENT=intent-classifier
 AZURE_OPENAI_DEPLOYMENT_NBA=nba-recommender
 AZURE_OPENAI_DEPLOYMENT_FRAUD=fraud-analyzer
-USE_AZURE=true
 ```
 
-**Option B: OpenAI API (Fallback)**
+**Option B - OpenAI API:**
 ```env
-OPENAI_API_KEY=sk-proj-...
 USE_AZURE=false
+OPENAI_API_KEY=sk-proj-...
 ```
 
-## Running the Demo
+### Run Demo
 
 ```bash
-# Make sure virtual environment is activated
 streamlit run app.py
 ```
 
-The app will open in your browser at `http://localhost:8501`
+Open browser at `http://localhost:8501`
 
-## Using the Demo
+## Demo Workflow
 
-1. **Select a Customer** - Choose from dropdown (15-20 mock profiles)
-2. **Enter Message** - Type a customer inquiry (or use examples)
-3. **Click Analyze** - AI processes through 3 stages
-4. **View Results:**
-   - Intent classification with confidence score
+1. **Select Customer** - Choose from mock customer dropdown
+2. **Enter Message** - Type customer inquiry or use examples
+3. **Analyze** - AI processes in 3 stages (~5 seconds)
+4. **Review Results:**
+   - Intent detected (with confidence %)
    - Customer context (policy, history, sentiment)
-   - Next-best-action recommendations (ranked)
-   - Fraud risk assessment
+   - Recommended actions (priority ranked)
+   - Fraud risk score (0-100)
 
-## Example Test Messages
-
-Try these sample customer messages:
+## Test Messages
 
 **Payment Issues:**
 - "I was charged twice for my premium this month"
-- "Why did my payment fail? I have money in my account"
-- "I need to update my bank account for auto-pay"
+- "Why did my payment fail?"
 
 **Claims:**
-- "I submitted a claim 2 weeks ago and haven't heard back"
+- "I submitted a claim 2 weeks ago, what's the status?"
 - "How do I file a long-term care claim?"
 
-**Policy Changes:**
-- "I want to add my newborn baby to my policy"
-- "Can I increase my coverage amount?"
-
-**Suspicious (Fraud):**
-- "I need to cash out my policy immediately, it's urgent"
-- "I want to change the bank account on file to a new one"
+**Fraud Indicators:**
+- "I need to cash out my policy urgently"
+- "Change my bank account to a new one immediately"
 
 **Complaints:**
-- "This is the third time I've called about this! I want a manager"
-- "Your service is terrible, I'm canceling my policy"
+- "This is my third call about this issue!"
+- "I want to speak to a manager now"
 
-## Demo Architecture
+## Architecture
 
 ```
-User Input (Streamlit UI)
+Customer Message (Streamlit Input)
     ↓
-[Stage 1: Intent Classification]
-    GPT-4o Model (temp=0.3)
-    20-intent taxonomy
+Intent Classifier → GPT-4o (temp=0.3)
     ↓
-[Mock Data Lookup]
-    Retrieve customer from MOCK_CUSTOMERS dict
+Mock Data Lookup → customer profiles
     ↓
-[Stage 3: NBA Recommendations]
-    GPT-4o Model (temp=0.7)
-    Context-aware suggestions
+NBA Recommender → GPT-4o (temp=0.7)
     ↓
-[Stage 4: Fraud Detection]
-    Pattern matching + GPT-4o reasoning (temp=0.2)
-    Risk scoring (0-100)
+Fraud Detector → Pattern matching + GPT-4o (temp=0.2)
     ↓
-Display Results (4 sections in UI)
+Display Results (4-panel UI)
 ```
 
-## File Structure
+**Processing Time:** 4-6 seconds per message  
+**API Calls:** 3 GPT-4o calls per analysis
+
+## Project Files
 
 ```
 hackathon/
-├── app.py                    # Streamlit UI (main entry point)
-├── intent_classifier.py      # Stage 1: Intent classification
-├── nba_recommender.py        # Stage 3: Next-best-action engine
-├── fraud_detector.py         # Stage 4: Fraud detection
-├── mock_data.py              # Mock customer profiles
-├── requirements.txt          # Python dependencies
-├── .env.example              # Environment variable template
-└── README.md                 # This file
+├── app.py                # Streamlit UI
+├── intent_classifier.py  # Intent classification
+├── nba_recommender.py    # Recommendation engine
+├── fraud_detector.py     # Fraud detection
+├── mock_data.py          # Customer profiles
+├── requirements.txt      # Dependencies
+├── .env.example          # Config template
+└── README.md             # This file
 ```
 
 ## Troubleshooting
 
-**Issue: Import errors**
-```bash
-# Make sure virtual environment is activated
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+**API Authentication Failed:**
+- Verify API key in `.env` file
+- Check Azure endpoint has no trailing slash
+- Ensure deployment names match your Azure resources
 
-**Issue: API authentication failed**
-- Check your API key is correct in `.env`
-- Verify Azure endpoint URL has no trailing slash
-- Test API access: `curl -H "api-key: YOUR_KEY" YOUR_ENDPOINT/openai/deployments`
-
-**Issue: Streamlit won't start**
+**Streamlit Won't Start:**
 ```bash
-# Check port 8501 is not in use
+# Check if port 8501 is in use
 lsof -i :8501
-# Kill existing process if needed
+# Kill process if needed
 kill -9 <PID>
 ```
 
-**Issue: Slow API responses**
+**Slow Responses:**
 - Check internet connection
 - Verify Azure region latency
-- Consider using lighter model for demo (gpt-3.5-turbo)
+- Consider using gpt-3.5-turbo for faster demo
 
-## Performance Expectations
+## Next Steps: Production Scale
 
-- **Intent Classification:** <1 second
-- **NBA Recommendations:** 2-3 seconds
-- **Fraud Detection:** 1-2 seconds
-- **Total Processing:** 4-6 seconds per message
+**From Hackathon to Production:**
+1. Replace mock data with live Salesforce API
+2. Deploy to Azure cloud infrastructure
+3. Build Microsoft Copilot Studio agent UI
+4. Add repeat caller analysis (Stage 5)
+5. Implement caching (Redis) for performance
+6. Add monitoring and analytics dashboards
+7. Security hardening (HIPAA compliance)
 
-## Next Steps: From Demo to Production
-
-1. **Azure Resource Provisioning** - Deploy Cosmos DB, SQL, Redis, AI Foundry
-2. **Salesforce Integration** - Replace mock data with live API calls
-3. **Copilot Studio UI** - Build agent-facing dashboard
-4. **Stage 2 & 5 Implementation** - Add context enrichment and repeat caller analysis
-5. **Security Hardening** - HIPAA compliance, encryption, RBAC
-6. **Performance Optimization** - Caching, batch processing, async operations
-7. **Monitoring & Alerting** - Application Insights, custom dashboards
-
-## Cost Estimate (Demo)
-
-**OpenAI API:**
-- ~1,000 tokens per analysis
-- $0.01 per 1K tokens (GPT-4)
-- ~$0.01 per customer interaction
-- 100 demo interactions = ~$1.00
-
-**Azure OpenAI:**
-- Pay-as-you-go or provisioned throughput
-- Similar costs to OpenAI API
-
-## Support
-
-For issues or questions, refer to internal project documentation or contact the project team.
+**Timeline:** 12-16 weeks for full production deployment
 
 ---
 
-**Demo built for 8-hour hackathon constraint. Production implementation documented in `/Docs`.**
+**Built for 8-hour hackathon | Optimized for demo speed over production scale**
