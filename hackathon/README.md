@@ -1,6 +1,6 @@
 # Hackathon Demo - Digital Director of Needs
 
-## 8-Hour Build: AI Contact Center Assistant
+## AI Contact Center Assistant
 
 This demo showcases how GPT-4o can analyze customer messages in real-time to classify intents, recommend actions, and detect fraud patterns—helping contact center agents respond faster and more effectively.
 
