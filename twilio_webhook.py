@@ -77,7 +77,7 @@ def voice_greeting():
     
     gather.say(
         "Hey, thanks for calling John Hancock. What can I help you with today?",
-        voice='Polly.Joanna-Neural'
+        voice='Polly.Salli-Neural'
     )
     
     # If no input, offer callback option instead of infinite loop
@@ -105,7 +105,7 @@ def continue_call():
     
     gather.say(
         "What else can I do for you?",
-        voice='Polly.Joanna-Neural'
+        voice='Polly.Salli-Neural'
     )
     
     # If no input, go to no-input handler
@@ -151,7 +151,7 @@ def process_intent():
     if not utterance:
         # No speech detected, try again
         resp = VoiceResponse()
-        resp.say("I didn't catch that. Could you please repeat?", voice='Polly.Joanna-Neural')
+        resp.say("I didn't catch that. Could you please repeat?", voice='Polly.Salli-Neural')
         resp.redirect('/voice')
         return str(resp)
     
@@ -202,7 +202,7 @@ def process_intent():
         resp.say(
             "I want to make sure I help you correctly. Are you calling about a claim, "
             "a payment, or something else?",
-            voice='Polly.Joanna-Neural'
+            voice='Polly.Salli-Neural'
         )
         
         gather = resp.gather(
@@ -306,7 +306,7 @@ def self_service():
         print("❌ Unknown intent, transferring to agent")
         resp.say(
             "I'm having trouble understanding your request. Let me connect you with an agent.",
-            voice='Polly.Joanna-Neural'
+            voice='Polly.Salli-Neural'
         )
         resp.redirect('/transfer-agent')
         return str(resp)
@@ -321,14 +321,14 @@ def self_service():
         if sentiment in ['frustrated', 'angry']:
             resp.say(
                 "I understand your concern, and I apologize for any frustration.",
-                voice='Polly.Joanna-Neural'
+                voice='Polly.Salli-Neural'
             )
             resp.pause(length=1)
     
     # Acknowledge
     resp.say(
         "Let me look that up for you.",
-        voice='Polly.Joanna-Neural'
+        voice='Polly.Salli-Neural'
     )
     
     resp.pause(length=2)  # Simulate lookup
@@ -355,7 +355,7 @@ def self_service():
                 chunks = [message[i:i+500] for i in range(0, len(message), 500)]
                 
                 for chunk in chunks:
-                    resp.say(chunk, voice='Polly.Joanna-Neural')
+                    resp.say(chunk, voice='Polly.Salli-Neural')
                 
                 # Add educational content if available from AI recommendations
                 educational_content = recommendations.get('educationalContent', [])
@@ -363,7 +363,7 @@ def self_service():
                     resp.pause(length=1)
                     resp.say(
                         f"Here's something helpful to know: {educational_content[0]}",
-                        voice='Polly.Joanna-Neural'
+                        voice='Polly.Salli-Neural'
                     )
                 
                 # Offer secondary action if available
@@ -378,7 +378,7 @@ def self_service():
                         resp.pause(length=1)
                         resp.say(
                             proactive_actions[0],
-                            voice='Polly.Joanna-Neural'
+                            voice='Polly.Salli-Neural'
                         )
                 
                 # For PAYMENT intent, offer interactive payment options
@@ -392,7 +392,7 @@ def self_service():
             else:
                 resp.say(
                     "I'm having trouble looking that up. Let me connect you with an agent.",
-                    voice='Polly.Joanna-Neural'
+                    voice='Polly.Salli-Neural'
                 )
                 resp.redirect('/transfer-agent')
                 return str(resp)
@@ -400,7 +400,7 @@ def self_service():
             print(f"❌ Self-service error: {e}")
             resp.say(
                 "I apologize, but I encountered an error. Let me connect you with an agent.",
-                voice='Polly.Joanna-Neural'
+                voice='Polly.Salli-Neural'
             )
             resp.redirect('/transfer-agent')
             return str(resp)
@@ -409,7 +409,7 @@ def self_service():
         resp.say(
             "Your claim number 12345 was approved on April 10th for 2,800 dollars. "
             "Your reimbursement check was mailed on April 18th.",
-            voice='Polly.Joanna-Neural'
+            voice='Polly.Salli-Neural'
         )
     
     # Ask if anything else
@@ -426,7 +426,7 @@ def self_service():
     
     gather.say(
         "Anything else?",
-        voice='Polly.Joanna-Neural'
+        voice='Polly.Salli-Neural'
     )
     
     # Default to goodbye if no response
@@ -454,7 +454,7 @@ def anything_else():
         resp.redirect('/goodbye')
     else:
         # If they said something else, ask for clarification
-        resp.say("I didn't catch that. Did you need help with something else?", voice='Polly.Joanna-Neural')
+        resp.say("I didn't catch that. Did you need help with something else?", voice='Polly.Salli-Neural')
         resp.redirect('/continue-call')
     
     return str(resp)
@@ -482,7 +482,7 @@ def transfer_agent():
     gather.say(
         "Let me get you to someone. Wait time's about 3 to 5 minutes right now. "
         "Wanna hold, or should we just call you back in an hour?",
-        voice='Polly.Joanna-Neural'
+        voice='Polly.Salli-Neural'
     )
     
     # Default to hold if no response
@@ -508,7 +508,7 @@ def process_transfer_choice():
         resp.say(
             f"Perfect! We'll hit you back at {format_phone_number(from_number)} within the hour. "
             "You'll get a text too. Talk soon!",
-            voice='Polly.Joanna-Neural'
+            voice='Polly.Salli-Neural'
         )
         resp.hangup()
         
@@ -524,7 +524,7 @@ def process_transfer_choice():
         # Hold option (default or explicitly stated) - provide engaging hold experience
         resp.say(
             "Alright, putting you through. While you're waiting, remember you can handle stuff online anytime.",
-            voice='Polly.Joanna-Neural'
+            voice='Polly.Salli-Neural'
         )
         
         # In production, use resp.dial() to transfer to real agent line
@@ -535,13 +535,13 @@ def process_transfer_choice():
         resp.pause(length=5)
         resp.say(
             "Almost there. Someone'll grab you in just a sec.",
-            voice='Polly.Joanna-Neural'
+            voice='Polly.Salli-Neural'
         )
         
         resp.pause(length=5)
         resp.say(
             "Thanks for waiting. In the real deal, you'd be chatting with someone now.",
-            voice='Polly.Joanna-Neural'
+            voice='Polly.Salli-Neural'
         )
         
         resp.redirect('/goodbye')
@@ -566,13 +566,13 @@ def no_input_handler():
     
     gather.say(
         "Didn't catch that. What's up?",
-        voice='Polly.Joanna-Neural'
+        voice='Polly.Salli-Neural'
     )
     
     # After second no-input, offer transfer
     resp.say(
         "Having trouble hearing you. Let me get you to a real person.",
-        voice='Polly.Joanna-Neural'
+        voice='Polly.Salli-Neural'
     )
     resp.redirect('/transfer-agent')
     
@@ -597,7 +597,7 @@ def payment_options():
         
         gather.say(
             "Wanna pay now, or you want to hear your options first?",
-            voice='Polly.Joanna-Neural'
+            voice='Polly.Salli-Neural'
         )
         
         # Default to payment methods if no response
@@ -607,7 +607,7 @@ def payment_options():
     except Exception as e:
         print(f"❌ Payment options error: {e}")
         resp = VoiceResponse()
-        resp.say("Having trouble with that. Let me get you to someone who can help.", voice='Polly.Joanna-Neural')
+        resp.say("Having trouble with that. Let me get you to someone who can help.", voice='Polly.Salli-Neural')
         resp.redirect('/transfer-agent')
         return str(resp)
 
@@ -627,7 +627,7 @@ def process_payment_choice():
         resp.say(
             "Cool, I'll get you to the payment system. "
             "Have your policy number handy, plus a credit card or bank info.",
-            voice='Polly.Joanna-Neural'
+            voice='Polly.Salli-Neural'
         )
         
         # In production, dial payment IVR: resp.dial('+18005551234')
@@ -635,7 +635,7 @@ def process_payment_choice():
         resp.pause(length=3)
         resp.say(
             "In a production system, you'd be connected to the payment system now.",
-            voice='Polly.Joanna-Neural'
+            voice='Polly.Salli-Neural'
         )
         resp.redirect('/goodbye')
         
@@ -666,7 +666,7 @@ def payment_methods():
         "Mail a check to P O Box 12345, Boston Mass, 02101. "
         "Call the payment line at 1-800-555-1234. "
         "Or just hop online to johnhancockltc.com.",
-        voice='Polly.Joanna-Neural'
+        voice='Polly.Salli-Neural'
     )
     
     resp.pause(length=1)
@@ -683,7 +683,7 @@ def payment_methods():
     
     gather.say(
         "Anything else?",
-        voice='Polly.Joanna-Neural'
+        voice='Polly.Salli-Neural'
     )
     
     # Fallback to anything-else endpoint (will redirect to goodbye if no input)
@@ -704,7 +704,7 @@ def goodbye():
     resp = VoiceResponse()
     resp.say(
         "Thanks for calling! Have a good one!",
-        voice='Polly.Joanna-Neural'
+        voice='Polly.Salli-Neural'
     )
     resp.hangup()
     

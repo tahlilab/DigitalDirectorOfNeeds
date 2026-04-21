@@ -267,7 +267,7 @@ def mock_claim_lookup(phone: str) -> Dict[str, Any]:
     if last_digit % 2 == 0:
         # Approved claim - elimination period completed
         return {
-            'claimNumber': f'CLM-{45678 + last_digit}',
+            'claimNumber': f'{2000 + last_digit}',
             'status': 'Approved',
             'amount': 2800.00,
             'approvedDate': '04/10/2026',
@@ -284,7 +284,7 @@ def mock_claim_lookup(phone: str) -> Dict[str, Any]:
         if last_digit in [1, 3]:
             # Still in elimination period
             return {
-                'claimNumber': f'CLM-{45678 + last_digit}',
+                'claimNumber': f'{3000 + last_digit}',
                 'status': 'Pending',
                 'amount': 0,
                 'submittedDate': '04/15/2026',
@@ -298,7 +298,7 @@ def mock_claim_lookup(phone: str) -> Dict[str, Any]:
         else:
             # Elimination period complete, waiting for invoices
             return {
-                'claimNumber': f'CLM-{45678 + last_digit}',
+                'claimNumber': f'{4000 + last_digit}',
                 'status': 'Pending',
                 'amount': 0,
                 'submittedDate': '04/01/2026',
