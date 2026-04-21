@@ -53,6 +53,7 @@ def handle_claim_status(phone: str, params: Dict) -> Dict[str, Any]:
     """
     Look up claim status with proactive next steps
     Enhanced to provide complete information and prevent escalation
+    Includes elimination period tracking and invoice status
     """
     # For demo: Mock Salesforce lookup
     # For production: Use Salesforce API
@@ -76,6 +77,14 @@ def handle_claim_status(phone: str, params: Dict) -> Dict[str, Any]:
     amount = claim_data.get('amount', 0)
     date = claim_data.get('approvedDate', claim_data.get('submittedDate', 'Unknown'))
     
+    # Elimination period tracking
+    days_submitted = claim_data.get('daysSubmitted', 0)
+    elimination_period = claim_data.get('eliminationPeriod', 90)
+    days_remaining_elim = max(0, elimination_period - days_submitted)
+    invoices_needed = claim_data.get('invoicesNeeded', False)
+    invoices_received = claim_data.get('invoicesReceived', 0)
+    invoices_total = claim_data.get('invoicesTotal', 0)
+    
     if status == 'Approved':
         message = f"Great news! Your claim number {claim_num} was approved on {date} for ${amount:,.2f}. "
         
@@ -89,7 +98,24 @@ def handle_claim_status(phone: str, params: Dict) -> Dict[str, Any]:
             
     elif status == 'Pending':
         days_remaining = claim_data.get('daysRemaining', 10)
-        message = f"Your claim number {claim_num} is currently pending review. We received it on {claim_data.get('submittedDate', date)} and you should receive a decision within {days_remaining} business days. "
+        message = f"Your claim number {claim_num} is currently pending review. We received it on {claim_data.get('submittedDate', date)}. "
+        
+        # Add elimination period info if applicable
+        if days_remaining_elim > 0:
+            message += f"You have submitted {days_submitted} days toward your {elimination_period}-day elimination period. "
+            message += f"You need {days_remaining_elim} more days of care before benefits begin. "
+        elif days_submitted >= elimination_period:
+            message += f"You've completed your {elimination_period}-day elimination period. "
+        
+        # Add invoice status if needed
+        if invoices_needed:
+            if invoices_received < invoices_total:
+                message += f"We've received {invoices_received} of {invoices_total} required invoices. "
+                message += "Please submit the remaining invoices to complete your claim. You can fax them to 1-800-555-9999 or upload them through our customer portal. "
+            else:
+                message += "All required invoices have been received and are being reviewed. "
+        
+        message += f"You should receive a decision within {days_remaining} business days. "
         message += "Our claims team is reviewing the documentation. If we need any additional information, we'll contact you directly. "
         message += "You can check your claim status anytime on our customer portal. "
         
@@ -228,6 +254,7 @@ def handle_rate_increase(phone: str, params: Dict) -> Dict[str, Any]:
 def mock_claim_lookup(phone: str) -> Dict[str, Any]:
     """
     Mock Salesforce claim lookup
+    Enhanced with elimination period and invoice tracking
     """
     # Simulate different scenarios based on phone number
     last_digit = int(phone[-1]) if phone else 0
@@ -236,24 +263,50 @@ def mock_claim_lookup(phone: str) -> Dict[str, Any]:
         return None  # No claim found
     
     if last_digit % 2 == 0:
-        # Approved claim
+        # Approved claim - elimination period completed
         return {
             'claimNumber': f'CLM-{45678 + last_digit}',
             'status': 'Approved',
             'amount': 2800.00,
             'approvedDate': '04/10/2026',
             'checkMailed': True,
-            'checkMailedDate': '04/18/2026'
+            'checkMailedDate': '04/18/2026',
+            'daysSubmitted': 95,
+            'eliminationPeriod': 90,
+            'invoicesNeeded': True,
+            'invoicesReceived': 3,
+            'invoicesTotal': 3
         }
     else:
-        # Pending claim
-        return {
-            'claimNumber': f'CLM-{45678 + last_digit}',
-            'status': 'Pending',
-            'amount': 0,
-            'submittedDate': '04/15/2026',
-            'daysRemaining': 5
-        }
+        # Pending claim - still in elimination period or waiting for invoices
+        if last_digit in [1, 3]:
+            # Still in elimination period
+            return {
+                'claimNumber': f'CLM-{45678 + last_digit}',
+                'status': 'Pending',
+                'amount': 0,
+                'submittedDate': '04/15/2026',
+                'daysRemaining': 5,
+                'daysSubmitted': 45,
+                'eliminationPeriod': 90,
+                'invoicesNeeded': True,
+                'invoicesReceived': 2,
+                'invoicesTotal': 2
+            }
+        else:
+            # Elimination period complete, waiting for invoices
+            return {
+                'claimNumber': f'CLM-{45678 + last_digit}',
+                'status': 'Pending',
+                'amount': 0,
+                'submittedDate': '04/01/2026',
+                'daysRemaining': 3,
+                'daysSubmitted': 95,
+                'eliminationPeriod': 90,
+                'invoicesNeeded': True,
+                'invoicesReceived': 1,
+                'invoicesTotal': 3
+            }
 
 
 def mock_payment_lookup(phone: str) -> Dict[str, Any]:

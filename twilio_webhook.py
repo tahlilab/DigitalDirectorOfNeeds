@@ -77,12 +77,41 @@ def voice_greeting():
     
     gather.say(
         "Thank you for calling John Hancock Long Term Care. "
-        "I'm your digital assistant. How can I help you today? "
-        "You can also press 1 for claims, 2 for payments, 3 for coverage, or 0 for an agent.",
+        "How can I help you today? "
+        "You can press 1 for claims, 2 for payments, 3 for coverage, or 0 for an agent.",
         voice='Polly.Joanna-Neural'
     )
     
     # If no input, offer callback option instead of infinite loop
+    resp.redirect('/no-input-handler')
+    
+    return str(resp)
+
+
+@app.route("/continue-call", methods=['GET', 'POST'])
+def continue_call():
+    """
+    Simplified prompt for continuing within the same call (no full greeting)
+    """
+    resp = VoiceResponse()
+    
+    # Simple prompt without full greeting
+    gather = resp.gather(
+        input='speech dtmf',
+        action='/process-intent',
+        timeout=3,
+        speech_timeout='auto',
+        language='en-US',
+        num_digits=1
+    )
+    
+    gather.say(
+        "How can I help you? "
+        "Press 1 for claims, 2 for payments, 3 for coverage, or 0 for an agent.",
+        voice='Polly.Joanna-Neural'
+    )
+    
+    # If no input, go to no-input handler
     resp.redirect('/no-input-handler')
     
     return str(resp)
@@ -417,14 +446,11 @@ def anything_else():
     resp = VoiceResponse()
     
     if '1' in response or 'yes' in response.lower():
-        # Continue with another question
-        resp.say("Sure, what else can I help you with?", voice='Polly.Joanna-Neural')
-        resp.redirect('/voice')
+        # Continue with another question - use simplified prompt
+        resp.redirect('/continue-call')
     elif '3' in response or 'start over' in response.lower() or 'restart' in response.lower():
-        # Restart from the very beginning
-        resp.say("No problem! Let's start fresh.", voice='Polly.Joanna-Neural')
-        resp.pause(length=1)
-        resp.redirect('/voice')  # Goes to the greeting with menu
+        # Restart - use simplified prompt
+        resp.redirect('/continue-call')
     else:
         # End call (2 or "no" or timeout)
         resp.redirect('/goodbye')
