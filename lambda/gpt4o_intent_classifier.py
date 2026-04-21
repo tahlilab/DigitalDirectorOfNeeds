@@ -69,28 +69,108 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
     # Intent patterns
     intent_patterns = {
         'CLAIM_STATUS': [
+            # Core patterns
             r'claim\s+status',
             r'check.*claim',
             r'where.*claim',
             r'claim.*approved',
             r'claim.*paid',
-            r'reimbursement'
+            r'reimbursement',
+            # Adjacent wordings - submission/tracking
+            r'submit.*claim',
+            r'filed.*claim',
+            r'claim.*processing',
+            r'claim.*pending',
+            r'claim.*denied',
+            r'claim.*rejected',
+            # Adjacent wordings - payments
+            r'where.*money',
+            r'where.*check',
+            r'reimbursement.*status',
+            r'payment.*claim',
+            r'claim.*payment',
+            # Adjacent wordings - timeframes
+            r'how long.*claim',
+            r'when.*claim',
+            r'claim.*take',
+            # Natural language variations
+            r'submitted.*claim.*status',
+            r'claim.*number',
+            r'track.*claim',
+            r'follow.*claim'
         ],
         'PAYMENT': [
+            # Core patterns
             r'pay.*premium',
             r'make.*payment',
             r'how.*pay',
             r'bill.*due',
-            r'payment.*due'
+            r'payment.*due',
+            # Adjacent wordings - due dates
+            r'when.*due',
+            r'due.*date',
+            r'next.*payment',
+            r'upcoming.*payment',
+            # Adjacent wordings - amounts
+            r'how much.*owe',
+            r'amount.*due',
+            r'premium.*amount',
+            r'bill.*amount',
+            r'monthly.*premium',
+            # Adjacent wordings - payment methods
+            r'pay.*online',
+            r'pay.*phone',
+            r'autopay',
+            r'automatic.*payment',
+            r'set.*up.*payment',
+            # Adjacent wordings - late/overdue
+            r'late.*payment',
+            r'overdue',
+            r'missed.*payment',
+            r'past.*due',
+            # Natural language variations
+            r'need.*pay',
+            r'want.*pay',
+            r'payment.*options',
+            r'pay.*bill'
         ],
         'COVERAGE_INQUIRY': [
+            # Core patterns
             r'coverage',
             r'what.*covered',
             r'benefits',
             r'policy.*details',
-            r'how much.*cover'
+            r'how much.*cover',
+            # Adjacent wordings - policy details
+            r'my.*policy',
+            r'policy.*information',
+            r'what.*does.*policy',
+            r'explain.*policy',
+            r'understand.*policy',
+            # Adjacent wordings - benefits
+            r'daily.*benefit',
+            r'lifetime.*benefit',
+            r'maximum.*benefit',
+            r'benefit.*amount',
+            r'benefit.*period',
+            # Adjacent wordings - care types
+            r'nursing.*home.*cover',
+            r'home.*care.*cover',
+            r'assisted.*living.*cover',
+            r'what.*care.*covered',
+            # Adjacent wordings - specifics
+            r'elimination.*period',
+            r'waiting.*period',
+            r'inflation.*protection',
+            r'compound.*inflation',
+            # Natural language variations
+            r'tell.*about.*policy',
+            r'policy.*pay',
+            r'coverage.*details',
+            r'what.*am.*i.*covered'
         ],
         'RATE_INCREASE': [
+            # Core patterns
             r'rate.*increase',
             r'rate.*go.*up',
             r'rate.*went.*up',
@@ -104,13 +184,66 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
             r'why.*higher',
             r'why.*premium',
             r'cost.*more',
-            r'price.*increase'
+            r'price.*increase',
+            # Adjacent wordings - rate changes
+            r'rate.*change',
+            r'premium.*change',
+            r'rate.*adjustment',
+            r'premium.*adjustment',
+            r'rate.*hike',
+            # Adjacent wordings - cost concerns
+            r'cost.*went.*up',
+            r'price.*went.*up',
+            r'more.*expensive',
+            r'paying.*more',
+            r'charged.*more',
+            # Adjacent wordings - notifications
+            r'letter.*premium',
+            r'notice.*rate',
+            r'notice.*premium',
+            r'notice.*increase',
+            r'received.*letter.*rate',
+            # Adjacent wordings - questions
+            r'why.*cost',
+            r'why.*increase',
+            r'explain.*increase',
+            r'reason.*increase',
+            # Natural language variations
+            r'premium.*more',
+            r'bill.*higher',
+            r'bill.*went.*up',
+            r'bill.*go.*up',
+            r'bill.*increase',
+            r'why.*bill.*up',
+            r'why.*bill.*more'
         ],
         'AGENT_REQUEST': [
+            # Core patterns
             r'speak.*agent',
             r'talk.*person',
             r'representative',
-            r'speak.*someone'
+            r'speak.*someone',
+            # Adjacent wordings - direct requests
+            r'talk.*agent',
+            r'speak.*rep',
+            r'human',
+            r'real.*person',
+            r'live.*person',
+            # Adjacent wordings - transfers
+            r'transfer.*agent',
+            r'connect.*agent',
+            r'transfer.*person',
+            r'connect.*person',
+            # Adjacent wordings - specialists
+            r'specialist',
+            r'supervisor',
+            r'manager',
+            r'customer.*service',
+            # Natural language variations
+            r'need.*help.*person',
+            r'talk.*someone',
+            r'speak.*representative',
+            r'get.*agent'
         ]
     }
     
@@ -170,6 +303,9 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
     # Detect sentiment
     sentiment = detect_sentiment(utterance_lower)
     
+    # Generate AI recommendations for next steps
+    recommendations = generate_recommendations(intent_name, confidence, sentiment, relationship, can_self_serve)
+    
     return {
         'intentName': intent_name,
         'confidence': str(round(confidence * 100)),
@@ -179,7 +315,8 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
         'entity': entity,
         'sentiment': sentiment,
         'canSelfServe': 'true' if can_self_serve else 'false',
-        'utterance': utterance
+        'utterance': utterance,
+        'recommendations': recommendations
     }
 
 
@@ -305,6 +442,128 @@ def detect_sentiment(utterance: str) -> str:
         return 'positive'
     else:
         return 'neutral'
+
+
+def generate_recommendations(intent: str, confidence: float, sentiment: str, relationship: str, can_self_serve: bool) -> Dict[str, Any]:
+    """
+    Generate AI-powered recommendations for next steps before agent escalation
+    """
+    recommendations = {
+        'primaryAction': '',
+        'secondaryActions': [],
+        'educationalContent': [],
+        'escalationReason': '',
+        'customerExperience': ''
+    }
+    
+    # Intent-specific recommendations
+    if intent == 'CLAIM_STATUS':
+        recommendations['primaryAction'] = 'Provide real-time claim status with detailed tracking information'
+        recommendations['secondaryActions'] = [
+            'Offer proactive updates via email/SMS',
+            'Explain next steps in claim process',
+            'Provide estimated completion timeline'
+        ]
+        recommendations['educationalContent'] = [
+            'Typical claim processing timeframes (7-14 business days)',
+            'Required documentation checklist',
+            'How to expedite claims if needed'
+        ]
+        if not can_self_serve:
+            recommendations['escalationReason'] = 'Requires agent verification or complex claim inquiry'
+        
+    elif intent == 'PAYMENT':
+        recommendations['primaryAction'] = 'Provide payment amount, due date, and multiple payment options'
+        recommendations['secondaryActions'] = [
+            'Offer to set up autopay',
+            'Explain late payment consequences',
+            'Provide grace period information'
+        ]
+        recommendations['educationalContent'] = [
+            'Payment methods: online, phone, mail',
+            'Autopay enrollment benefits',
+            'Premium payment history access'
+        ]
+        if not can_self_serve:
+            recommendations['escalationReason'] = 'Requires payment plan setup or billing dispute resolution'
+    
+    elif intent == 'COVERAGE_INQUIRY':
+        recommendations['primaryAction'] = 'Explain policy benefits, daily limits, and coverage periods'
+        recommendations['secondaryActions'] = [
+            'Provide examples of covered care scenarios',
+            'Explain elimination period and waiting periods',
+            'Detail inflation protection benefits'
+        ]
+        recommendations['educationalContent'] = [
+            'Types of care covered: nursing home, assisted living, home care',
+            'Benefit triggers and qualification criteria',
+            'How to file claims when care begins'
+        ]
+        if not can_self_serve:
+            recommendations['escalationReason'] = 'Requires detailed policy interpretation or customization discussion'
+    
+    elif intent == 'RATE_INCREASE':
+        recommendations['primaryAction'] = 'Explain rate increase reason, amount, and effective date transparently'
+        recommendations['secondaryActions'] = [
+            'Offer rate stability options (reduce benefits, longer elimination period)',
+            'Explain industry-wide rate trends',
+            'Provide comparison with original pricing disclosure'
+        ]
+        recommendations['educationalContent'] = [
+            'Why LTC rates increase (healthcare costs, claims experience)',
+            'Options to reduce premium while maintaining coverage',
+            'State insurance department contact for rate questions'
+        ]
+        if sentiment == 'frustrated' or sentiment == 'angry':
+            recommendations['customerExperience'] = 'Customer shows frustration - use empathetic language and offer flexible options'
+        if not can_self_serve:
+            recommendations['escalationReason'] = 'Customer needs personalized rate mitigation strategies or billing adjustment'
+    
+    elif intent == 'AGENT_REQUEST':
+        recommendations['primaryAction'] = 'Transfer to appropriate specialist based on underlying need'
+        recommendations['secondaryActions'] = [
+            'Attempt to identify specific concern before transfer',
+            'Route to specialized queue (claims, underwriting, billing)',
+            'Provide estimated wait time'
+        ]
+        recommendations['escalationReason'] = 'Direct agent request or complex inquiry requiring human judgment'
+    
+    elif intent == 'UNKNOWN':
+        recommendations['primaryAction'] = 'Ask clarifying question to understand customer need'
+        recommendations['secondaryActions'] = [
+            'Provide menu of common intents (claim, payment, coverage, rate)',
+            'Use open-ended question to gather more context',
+            'Offer to transfer to generalist agent if still unclear'
+        ]
+        recommendations['educationalContent'] = [
+            'Common reasons customers call',
+            'Self-service options available'
+        ]
+        recommendations['escalationReason'] = 'Intent unclear after clarification attempt'
+    
+    # Confidence-based adjustments
+    if confidence < 0.70:
+        recommendations['customerExperience'] = 'Low confidence - ask confirmation question before proceeding'
+        recommendations['secondaryActions'].insert(0, 'Confirm understanding before providing detailed response')
+    
+    # Relationship-based adjustments
+    if relationship == 'third_party':
+        recommendations['primaryAction'] = 'Verify authorization before discussing protected health information'
+        recommendations['secondaryActions'] = [
+            'Request power of attorney documentation',
+            'Verify relationship and consent',
+            'Explain HIPAA privacy requirements'
+        ]
+        recommendations['escalationReason'] = 'Third-party caller requires authorization verification'
+    
+    # Sentiment-based adjustments
+    if sentiment == 'angry' or sentiment == 'frustrated':
+        recommendations['customerExperience'] = 'Customer shows negative emotion - prioritize empathy and de-escalation'
+        recommendations['secondaryActions'].insert(0, 'Acknowledge concern and apologize for frustration')
+    elif sentiment == 'urgent':
+        recommendations['customerExperience'] = 'Time-sensitive issue - expedite response and offer priority handling'
+    
+    return recommendations
 
 
 def error_response(message: str) -> Dict[str, Any]:
