@@ -217,6 +217,37 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
             r'why.*bill.*up',
             r'why.*bill.*more'
         ],
+        'PROVIDER_REFERRAL': [
+            # Core patterns
+            r'find.*provider',
+            r'need.*provider',
+            r'looking.*provider',
+            r'search.*provider',
+            r'provider.*referral',
+            # Adjacent wordings - finding care
+            r'find.*doctor',
+            r'find.*facility',
+            r'find.*nursing.*home',
+            r'find.*home.*care',
+            r'find.*assisted.*living',
+            r'find.*care.*facility',
+            # Adjacent wordings - need help finding
+            r'need.*help.*finding',
+            r'looking.*for.*care',
+            r'search.*for.*care',
+            r'where.*can.*i.*find',
+            # Adjacent wordings - specific providers
+            r'recommend.*provider',
+            r'suggest.*provider',
+            r'list.*of.*providers',
+            r'approved.*providers',
+            r'in.*network.*providers',
+            # Natural language variations
+            r'who.*can.*help.*me',
+            r'where.*to.*go',
+            r'need.*care.*provider',
+            r'looking.*for.*help'
+        ],
         'AGENT_REQUEST': [
             # Core patterns
             r'speak.*agent',

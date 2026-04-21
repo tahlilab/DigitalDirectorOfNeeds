@@ -389,6 +389,15 @@ def self_service():
                     resp.redirect(f'/payment-options?phone={from_number}')
                     return str(resp)
                 
+                # For PROVIDER_REFERRAL intent, handle email verification flow
+                if intent == 'PROVIDER_REFERRAL':
+                    needs_verification = result.get('needsEmailVerification', False)
+                    if needs_verification:
+                        resp.pause(length=1)
+                        from_number = request.values.get('From', phone)
+                        resp.redirect(f'/provider-email-verify?phone={from_number}')
+                        return str(resp)
+                
             else:
                 resp.say(
                     "I'm having trouble looking that up. Let me connect you with an agent.",
@@ -687,6 +696,78 @@ def payment_methods():
     )
     
     # Fallback to anything-else endpoint (will redirect to goodbye if no input)
+    resp.redirect('/anything-else')
+    
+    return str(resp)
+
+
+@app.route("/provider-email-verify", methods=['GET', 'POST'])
+def provider_email_verify():
+    """
+    Handle email verification for provider referral
+    Following flow: verify email → send to Helper Bees → set SLA expectation
+    """
+    resp = VoiceResponse()
+    phone = request.args.get('phone', request.values.get('From', ''))
+    
+    # Get the speech response if any
+    speech = request.values.get('SpeechResult', '').lower()
+    
+    if speech:
+        # Check for yes/confirmation
+        if any(word in speech for word in ['yes', 'yeah', 'correct', 'right', 'good', 'fine', 'yep']):
+            resp.say(
+                "Perfect! I've put in the request. The Helper Bees will email you within 1-2 business days with provider options. "
+                "They're really good at finding exactly what you need. Anything else I can help with?",
+                voice='Polly.Salli-Neural'
+            )
+            resp.redirect('/anything-else')
+            return str(resp)
+        
+        # Check for no/need different email
+        elif any(word in speech for word in ['no', 'nope', 'different', 'change', 'update', 'wrong']):
+            resp.say(
+                "No problem! What's the best email address for you?",
+                voice='Polly.Salli-Neural'
+            )
+            
+            # Gather email (would need email collection flow in production)
+            gather = resp.gather(
+                input='speech',
+                action='/provider-email-collected',
+                timeout=10,
+                speech_timeout='auto'
+            )
+            
+            return str(resp)
+    
+    # No input or unclear - ask again
+    resp.say(
+        "Sorry, didn't catch that. Is that email still good?",
+        voice='Polly.Salli-Neural'
+    )
+    resp.redirect('/provider-email-verify?phone=' + phone)
+    
+    return str(resp)
+
+
+@app.route("/provider-email-collected", methods=['POST'])
+def provider_email_collected():
+    """
+    Process newly collected email for provider referral
+    """
+    resp = VoiceResponse()
+    speech = request.values.get('SpeechResult', '')
+    
+    # In production, would validate and store email
+    # For now, just confirm
+    resp.say(
+        f"Got it, I've updated your email to {speech}. "
+        "The Helper Bees will reach out there within 1-2 business days with provider options. "
+        "Is there anything else I can help you with?",
+        voice='Polly.Salli-Neural'
+    )
+    
     resp.redirect('/anything-else')
     
     return str(resp)

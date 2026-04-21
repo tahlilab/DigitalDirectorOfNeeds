@@ -39,7 +39,8 @@ def lambda_handler(event, context):
         'CLAIM_STATUS': handle_claim_status,
         'PAYMENT': handle_payment,
         'COVERAGE_INQUIRY': handle_coverage,
-        'RATE_INCREASE': handle_rate_increase
+        'RATE_INCREASE': handle_rate_increase,
+        'PROVIDER_REFERRAL': handle_provider_referral
     }
     
     handler = handlers.get(intent)
@@ -253,6 +254,42 @@ def handle_rate_increase(phone: str, params: Dict) -> Dict[str, Any]:
     }
 
 
+def handle_provider_referral(phone: str, params: Dict) -> Dict[str, Any]:
+    """
+    Handle provider referral requests (pre-claim)
+    Following flow: Collect info → Create Salesforce note → Send to Helper Bees → Email verification
+    """
+    # Get customer email for verification
+    customer_data = mock_customer_lookup(phone)
+    
+    if not customer_data:
+        return error_response("No customer information found")
+    
+    email = customer_data.get('email', '')
+    
+    # Create Salesforce Health Cloud note (would happen via API in production)
+    # This would trigger: notification to THB, daily SFTP feed, email outreach
+    
+    message = "Got it! So we partner with The Helper Bees - they're really helpful at finding providers. "
+    message += "I'm gonna put in a request for them to reach out. "
+    
+    if email:
+        # Email verification step from flow
+        message += f"Quick thing - is {email} still the best email for you? "
+        message += "They'll send you some info and options there. "
+        message += "Usually takes about 1-2 business days to hear back. "
+    else:
+        message += "I'll need an email address so they can send you the provider info. What's your email?"
+    
+    return {
+        'responseMessage': message,
+        'success': True,
+        'needsEmailVerification': True,
+        'partnerService': 'The Helper Bees',
+        'slaMessage': 'You should hear back within 1-2 business days'
+    }
+
+
 def mock_claim_lookup(phone: str) -> Dict[str, Any]:
     """
     Mock Salesforce claim lookup
@@ -359,6 +396,25 @@ def mock_rate_lookup(phone: str) -> Dict[str, Any]:
             'currentPremium': current_premium,
             'hasUpcomingIncrease': False
         }
+
+
+def mock_customer_lookup(phone: str) -> Dict[str, Any]:
+    """
+    Mock customer information lookup for provider referral
+    """
+    # Extract digits for email generation
+    digits = ''.join(filter(str.isdigit, phone))
+    if len(digits) >= 10:
+        last_four = digits[-4:]
+    else:
+        last_four = '0000'
+    
+    return {
+        'phone': phone,
+        'email': f'customer{last_four}@example.com',
+        'firstName': 'Customer',
+        'policyActive': True
+    }
 
 
 def lookup_salesforce_claim(phone: str) -> Dict[str, Any]:
