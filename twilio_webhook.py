@@ -152,6 +152,55 @@ def process_intent():
     return str(resp)
 
 
+@app.route("/process-clarification", methods=['POST'])
+def process_clarification():
+    """
+    Handle clarification response when confidence is low
+    """
+    call_sid = request.values.get('CallSid', '')
+    utterance = request.values.get('SpeechResult', '')
+    from_number = request.values.get('From', '')
+    
+    print(f"🔄 Clarification received: {utterance}")
+    
+    # Process the clarified intent
+    if gpt4o_handler:
+        event = {
+            'Details': {
+                'Parameters': {
+                    'utterance': utterance,
+                    'transcription': utterance,
+                    'phoneNumber': from_number
+                }
+            }
+        }
+        
+        result = gpt4o_handler(event, None)
+        print(f"✅ GPT-4o Result: {result}")
+        
+        if call_sid in sessions:
+            sessions[call_sid].update(result)
+    else:
+        # Mock response
+        result = {
+            'intentName': 'CLAIM_STATUS',
+            'confidence': '90',
+            'canSelfServe': 'true',
+            'relationship': 'owner',
+            'callType': 'Owner'
+        }
+    
+    resp = VoiceResponse()
+    
+    # Route based on self-service capability
+    if result.get('canSelfServe') == 'true':
+        resp.redirect(f'/self-service?intent={result["intentName"]}&phone={from_number}')
+    else:
+        resp.redirect('/transfer-agent')
+    
+    return str(resp)
+
+
 @app.route("/self-service", methods=['GET', 'POST'])
 def self_service():
     """
