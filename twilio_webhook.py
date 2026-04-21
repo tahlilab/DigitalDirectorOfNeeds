@@ -15,6 +15,7 @@ Setup:
 from flask import Flask, request, jsonify
 from twilio.twiml.voice_response import VoiceResponse, Gather
 import sys
+import os
 from pathlib import Path
 
 # Import Lambda functions
@@ -369,4 +370,6 @@ if __name__ == '__main__':
     print("5. Call your Twilio number to test!")
     print("\n" + "="*60 + "\n")
     
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Use PORT from environment (Render uses port 10000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
