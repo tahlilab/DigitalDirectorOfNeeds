@@ -112,22 +112,28 @@ def handle_payment(phone: str, params: Dict) -> Dict[str, Any]:
     due_date = payment_data['dueDate']
     last_payment = payment_data.get('lastPaymentDate')
     
+    # Format dates for speech
+    due_date_obj = datetime.strptime(due_date, '%Y-%m-%d')
+    due_date_spoken = due_date_obj.strftime('%B %d, %Y')  # e.g., "May 1st, 2026"
+    
     message = f"Your monthly premium is ${premium:,.2f}. "
     
     if payment_data['autopay']:
-        message += f"You have automatic payments set up. Your next payment of ${premium:,.2f} will be withdrawn on {due_date}. "
+        message += f"You have automatic payments set up. Your next payment of ${premium:,.2f} will be withdrawn on {due_date_spoken}. "
     else:
-        days_until_due = (datetime.strptime(due_date, '%Y-%m-%d') - datetime.now()).days
+        days_until_due = (due_date_obj - datetime.now()).days
         
         if days_until_due < 0:
-            message += f"Your payment was due on {due_date}. To avoid a lapse in coverage, please make a payment as soon as possible. "
+            message += f"Your payment was due on {due_date_spoken}. To avoid a lapse in coverage, please make a payment as soon as possible. "
         elif days_until_due <= 7:
-            message += f"Your payment is due on {due_date}, which is in {days_until_due} days. "
+            message += f"Your payment is due on {due_date_spoken}, which is in {days_until_due} days. "
         else:
-            message += f"Your next payment of ${premium:,.2f} is due on {due_date}. "
+            message += f"Your next payment of ${premium:,.2f} is due on {due_date_spoken}. "
     
     if last_payment:
-        message += f"Your last payment was received on {last_payment}. "
+        last_payment_obj = datetime.strptime(last_payment, '%Y-%m-%d')
+        last_payment_spoken = last_payment_obj.strftime('%B %d, %Y')
+        message += f"Your last payment was received on {last_payment_spoken}. "
     
     message += "To make a payment now, I can transfer you to our automated payment system. Would you like to do that?"
     
@@ -202,8 +208,8 @@ def mock_payment_lookup(phone: str) -> Dict[str, Any]:
     """
     return {
         'premiumAmount': 285.00,
-        'dueDate': '05/01/2026',
-        'lastPaymentDate': '04/01/2026',
+        'dueDate': '2026-05-01',
+        'lastPaymentDate': '2026-04-01',
         'autopay': False
     }
 
