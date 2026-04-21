@@ -105,6 +105,14 @@ def process_intent():
         result = gpt4o_handler(event, None)
         print(f"✅ GPT-4o Result: {result}")
         
+        # Log AI recommendations if available
+        if 'recommendations' in result:
+            recs = result['recommendations']
+            print(f"🤖 AI Recommendations:")
+            print(f"   Primary Action: {recs.get('primaryAction', 'N/A')}")
+            print(f"   Secondary Actions: {len(recs.get('secondaryActions', []))} items")
+            print(f"   Customer Experience: {recs.get('customerExperience', 'N/A')}")
+        
         # Store in session
         if call_sid in sessions:
             sessions[call_sid].update(result)
@@ -219,10 +227,11 @@ def process_clarification():
 @app.route("/self-service", methods=['GET', 'POST'])
 def self_service():
     """
-    Handle self-service automation
+    Handle self-service automation with AI recommendations
     """
     intent = request.args.get('intent', request.values.get('intent', 'UNKNOWN'))
     phone = request.args.get('phone', request.values.get('From', ''))
+    call_sid = request.values.get('CallSid', '')
     
     print(f"🤖 Self-service: {intent}")
     
@@ -237,6 +246,20 @@ def self_service():
         )
         resp.redirect('/transfer-agent')
         return str(resp)
+    
+    # Get recommendations from session if available
+    recommendations = {}
+    if call_sid in sessions and 'recommendations' in sessions[call_sid]:
+        recommendations = sessions[call_sid]['recommendations']
+        sentiment = sessions[call_sid].get('sentiment', 'neutral')
+        
+        # If customer is frustrated, add empathy first
+        if sentiment in ['frustrated', 'angry']:
+            resp.say(
+                "I understand your concern, and I apologize for any frustration.",
+                voice='Polly.Joanna-Neural'
+            )
+            resp.pause(length=1)
     
     # Acknowledge
     resp.say(
@@ -269,6 +292,31 @@ def self_service():
                 
                 for chunk in chunks:
                     resp.say(chunk, voice='Polly.Joanna-Neural')
+                
+                # Add educational content if available from AI recommendations
+                educational_content = recommendations.get('educationalContent', [])
+                if educational_content and len(educational_content) > 0:
+                    resp.pause(length=1)
+                    resp.say(
+                        f"Here's something helpful to know: {educational_content[0]}",
+                        voice='Polly.Joanna-Neural'
+                    )
+                
+                # Offer secondary action if available
+                secondary_actions = recommendations.get('secondaryActions', [])
+                if secondary_actions and len(secondary_actions) > 0:
+                    # Filter out empathy messages (already handled)
+                    proactive_actions = [
+                        action for action in secondary_actions 
+                        if 'apologize' not in action.lower() and 'acknowledge' not in action.lower()
+                    ]
+                    if proactive_actions and len(proactive_actions) > 0:
+                        resp.pause(length=1)
+                        resp.say(
+                            proactive_actions[0],
+                            voice='Polly.Joanna-Neural'
+                        )
+                
             else:
                 resp.say(
                     "I'm having trouble looking that up. Let me connect you with an agent.",
