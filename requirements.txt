@@ -1,0 +1,10 @@
+# No external dependencies needed for basic simulation
+# Lambda functions use only Python standard library
+
+# Optional: For Streamlit demo
+streamlit>=1.28.0
+
+# Optional: For production Lambda deployment
+# boto3>=1.28.0
+# openai>=1.0.0
+# simple-salesforce>=1.12.0
