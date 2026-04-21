@@ -38,7 +38,8 @@ def lambda_handler(event, context):
     handlers = {
         'CLAIM_STATUS': handle_claim_status,
         'PAYMENT': handle_payment,
-        'COVERAGE_INQUIRY': handle_coverage
+        'COVERAGE_INQUIRY': handle_coverage,
+        'RATE_INCREASE': handle_rate_increase
     }
     
     handler = handlers.get(intent)
@@ -171,6 +172,38 @@ def handle_coverage(phone: str, params: Dict) -> Dict[str, Any]:
     }
 
 
+def handle_rate_increase(phone: str, params: Dict) -> Dict[str, Any]:
+    """
+    Handle rate increase inquiries
+    """
+    rate_data = mock_rate_lookup(phone)
+    
+    if not rate_data:
+        return error_response("No policy information found")
+    
+    current_premium = rate_data['currentPremium']
+    has_increase = rate_data.get('hasUpcomingIncrease', False)
+    
+    message = f"Your current monthly premium is ${current_premium:,.2f}. "
+    
+    if has_increase:
+        new_premium = rate_data['newPremium']
+        effective_date = rate_data['effectiveDate']
+        increase_pct = rate_data['increasePercentage']
+        
+        message += f"Your premium will be increasing by {increase_pct}% to ${new_premium:,.2f}, effective {effective_date}. "
+        message += "A detailed explanation of this adjustment was mailed to you. "
+        message += "If you have questions about this increase, I can connect you with a specialist. Would you like to speak with someone?"
+    else:
+        message += "You do not have any scheduled rate increases at this time. "
+        message += "If you have specific questions about premium rates, I'd be happy to connect you with a specialist."
+    
+    return {
+        'responseMessage': message,
+        'success': True
+    }
+
+
 def mock_claim_lookup(phone: str) -> Dict[str, Any]:
     """
     Mock Salesforce claim lookup
@@ -225,6 +258,31 @@ def mock_coverage_lookup(phone: str) -> Dict[str, Any]:
         'inflationProtection': True,
         'inflationRate': 3
     }
+
+
+def mock_rate_lookup(phone: str) -> Dict[str, Any]:
+    """
+    Mock rate increase information
+    """
+    # Simulate different scenarios based on phone number
+    last_digit = int(phone[-1]) if phone else 0
+    
+    current_premium = 285.00
+    
+    # Numbers ending in 1-3 have upcoming rate increase
+    if last_digit in [1, 2, 3]:
+        return {
+            'currentPremium': current_premium,
+            'hasUpcomingIncrease': True,
+            'newPremium': round(current_premium * 1.08, 2),  # 8% increase
+            'effectiveDate': 'July 1st, 2026',
+            'increasePercentage': 8
+        }
+    else:
+        return {
+            'currentPremium': current_premium,
+            'hasUpcomingIncrease': False
+        }
 
 
 def lookup_salesforce_claim(phone: str) -> Dict[str, Any]:
@@ -293,6 +351,14 @@ if __name__ == '__main__':
                 'Parameters': {
                     'intentName': 'COVERAGE_INQUIRY',
                     'phoneNumber': '+15551234567'
+                }
+            }
+        },
+        {
+            'Details': {
+                'Parameters': {
+                    'intentName': 'RATE_INCREASE',
+                    'phoneNumber': '+15551234562'
                 }
             }
         }

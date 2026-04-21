@@ -122,6 +122,7 @@ def process_intent():
     
     # Route based on confidence
     confidence = int(result.get('confidence', '0'))
+    intent_name = result.get('intentName', 'UNKNOWN')
     
     if confidence < 70:
         # Low confidence - clarify
@@ -141,12 +142,18 @@ def process_intent():
         
         return str(resp)
     
-    # Check if self-serviceable
+    # Check if customer wants to speak with agent
+    if intent_name == 'AGENT_REQUEST' or result.get('canSelfServe') == 'false':
+        print("📞 Transfer to agent")
+        resp.redirect('/transfer-agent')
+        return str(resp)
+    
+    # Self-serviceable intents
     if result.get('canSelfServe') == 'true':
         print("✅ Self-service path")
-        resp.redirect(f'/self-service?intent={result["intentName"]}&phone={from_number}')
+        resp.redirect(f'/self-service?intent={intent_name}&phone={from_number}')
     else:
-        print("📞 Transfer to agent")
+        print("📞 Transfer to agent (default)")
         resp.redirect('/transfer-agent')
     
     return str(resp)
@@ -193,8 +200,16 @@ def process_clarification():
     resp = VoiceResponse()
     
     # Route based on self-service capability
+    intent_name = result.get('intentName', 'UNKNOWN')
+    
+    # Check if customer wants agent or intent requires agent
+    if intent_name == 'AGENT_REQUEST' or result.get('canSelfServe') == 'false':
+        resp.redirect('/transfer-agent')
+        return str(resp)
+    
+    # Self-serviceable intents
     if result.get('canSelfServe') == 'true':
-        resp.redirect(f'/self-service?intent={result["intentName"]}&phone={from_number}')
+        resp.redirect(f'/self-service?intent={intent_name}&phone={from_number}')
     else:
         resp.redirect('/transfer-agent')
     
@@ -213,9 +228,19 @@ def self_service():
     
     resp = VoiceResponse()
     
+    # Validate intent
+    if intent == 'UNKNOWN' or not intent:
+        print("❌ Unknown intent, transferring to agent")
+        resp.say(
+            "I'm having trouble understanding your request. Let me connect you with an agent.",
+            voice='Polly.Joanna-Neural'
+        )
+        resp.redirect('/transfer-agent')
+        return str(resp)
+    
     # Acknowledge
     resp.say(
-        f"Let me look that up for you.",
+        "Let me look that up for you.",
         voice='Polly.Joanna-Neural'
     )
     
@@ -223,29 +248,38 @@ def self_service():
     
     # Call self-service automation
     if selfserve_handler:
-        event = {
-            'Details': {
-                'Parameters': {
-                    'intentName': intent,
-                    'phoneNumber': phone
+        try:
+            event = {
+                'Details': {
+                    'Parameters': {
+                        'intentName': intent,
+                        'phoneNumber': phone
+                    }
                 }
             }
-        }
-        
-        result = selfserve_handler(event, None)
-        print(f"✅ Self-service result: {result}")
-        
-        if result.get('success'):
-            message = result.get('responseMessage', 'Your request has been processed.')
             
-            # Split long messages into chunks (TwiML has length limits)
-            chunks = [message[i:i+500] for i in range(0, len(message), 500)]
+            result = selfserve_handler(event, None)
+            print(f"✅ Self-service result: {result}")
             
-            for chunk in chunks:
-                resp.say(chunk, voice='Polly.Joanna-Neural')
-        else:
+            if result.get('success'):
+                message = result.get('responseMessage', 'Your request has been processed.')
+                
+                # Split long messages into chunks (TwiML has length limits)
+                chunks = [message[i:i+500] for i in range(0, len(message), 500)]
+                
+                for chunk in chunks:
+                    resp.say(chunk, voice='Polly.Joanna-Neural')
+            else:
+                resp.say(
+                    "I'm having trouble looking that up. Let me connect you with an agent.",
+                    voice='Polly.Joanna-Neural'
+                )
+                resp.redirect('/transfer-agent')
+                return str(resp)
+        except Exception as e:
+            print(f"❌ Self-service error: {e}")
             resp.say(
-                "I'm having trouble looking that up. Let me connect you with an agent.",
+                "I apologize, but I encountered an error. Let me connect you with an agent.",
                 voice='Polly.Joanna-Neural'
             )
             resp.redirect('/transfer-agent')
