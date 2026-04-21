@@ -352,7 +352,7 @@ def self_service():
     )
     
     gather.say(
-        "Is there anything else I can help you with? Say yes or press 1 to continue, or say no or press 2 to end the call.",
+        "Is there anything else I can help you with? Press 1 to continue, press 2 to end the call, or press 3 to start over from the beginning.",
         voice='Polly.Joanna-Neural'
     )
     
@@ -365,18 +365,23 @@ def self_service():
 @app.route("/anything-else", methods=['POST'])
 def anything_else():
     """
-    Handle anything else prompt
+    Handle anything else prompt with restart option
     """
     response = request.values.get('Digits', request.values.get('SpeechResult', ''))
     
     resp = VoiceResponse()
     
     if '1' in response or 'yes' in response.lower():
-        # Start over
+        # Continue with another question
         resp.say("Sure, what else can I help you with?", voice='Polly.Joanna-Neural')
         resp.redirect('/voice')
+    elif '3' in response or 'start over' in response.lower() or 'restart' in response.lower():
+        # Restart from the very beginning
+        resp.say("No problem! Let's start fresh.", voice='Polly.Joanna-Neural')
+        resp.pause(length=1)
+        resp.redirect('/')  # Goes to the initial greeting
     else:
-        # End call
+        # End call (2 or "no" or timeout)
         resp.redirect('/goodbye')
     
     return str(resp)
