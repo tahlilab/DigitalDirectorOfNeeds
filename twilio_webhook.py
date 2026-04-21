@@ -76,7 +76,7 @@ def voice_greeting():
     )
     
     gather.say(
-        "Thanks for calling John Hancock Long Term Care. What can I help you with?",
+        "Hey, thanks for calling John Hancock. What can I help you with today?",
         voice='Polly.Joanna-Neural'
     )
     
@@ -104,7 +104,7 @@ def continue_call():
     )
     
     gather.say(
-        "What else can I help you with?",
+        "What else can I do for you?",
         voice='Polly.Joanna-Neural'
     )
     
@@ -384,7 +384,9 @@ def self_service():
                 # For PAYMENT intent, offer interactive payment options
                 if intent == 'PAYMENT':
                     resp.pause(length=1)
-                    resp.redirect('/payment-options?phone=' + phone)
+                    # Use from_number from request instead of phone parameter
+                    from_number = request.values.get('From', phone)
+                    resp.redirect(f'/payment-options?phone={from_number}')
                     return str(resp)
                 
             else:
@@ -423,7 +425,7 @@ def self_service():
     )
     
     gather.say(
-        "Anything else I can help with?",
+        "Anything else?",
         voice='Polly.Joanna-Neural'
     )
     
@@ -478,8 +480,8 @@ def transfer_agent():
     )
     
     gather.say(
-        "I can get you to someone right now. The wait's running about 3 to 5 minutes. "
-        "Would you like to hold, or should we call you back within the hour?",
+        "Let me get you to someone. Wait time's about 3 to 5 minutes right now. "
+        "Wanna hold, or should we just call you back in an hour?",
         voice='Polly.Joanna-Neural'
     )
     
@@ -504,8 +506,8 @@ def process_transfer_choice():
     if any(word in response for word in ['callback', 'call back', 'call me', 'later', 'no']):
         # Callback option
         resp.say(
-            f"Sounds good! We'll give you a call back at {format_phone_number(from_number)} within the hour. "
-            "You'll get a text confirmation too. Thanks for calling!",
+            f"Perfect! We'll hit you back at {format_phone_number(from_number)} within the hour. "
+            "You'll get a text too. Talk soon!",
             voice='Polly.Joanna-Neural'
         )
         resp.hangup()
@@ -521,7 +523,7 @@ def process_transfer_choice():
     else:
         # Hold option (default or explicitly stated) - provide engaging hold experience
         resp.say(
-            "Alright, connecting you now. While you wait, remember you can also manage your policy anytime on our website.",
+            "Alright, putting you through. While you're waiting, remember you can handle stuff online anytime.",
             voice='Polly.Joanna-Neural'
         )
         
@@ -532,13 +534,13 @@ def process_transfer_choice():
         # Periodic update to prevent customer from hanging up
         resp.pause(length=5)
         resp.say(
-            "You're up next. Someone will be right with you.",
+            "Almost there. Someone'll grab you in just a sec.",
             voice='Polly.Joanna-Neural'
         )
         
         resp.pause(length=5)
         resp.say(
-            "Thanks for hanging in there. In a real system, you'd be talking to someone right now.",
+            "Thanks for waiting. In the real deal, you'd be chatting with someone now.",
             voice='Polly.Joanna-Neural'
         )
         
@@ -563,13 +565,13 @@ def no_input_handler():
     )
     
     gather.say(
-        "I didn't catch that. What can I help you with?",
+        "Didn't catch that. What's up?",
         voice='Polly.Joanna-Neural'
     )
     
     # After second no-input, offer transfer
     resp.say(
-        "I'm having a hard time hearing you. Let me get you to someone who can help.",
+        "Having trouble hearing you. Let me get you to a real person.",
         voice='Polly.Joanna-Neural'
     )
     resp.redirect('/transfer-agent')
@@ -582,27 +584,32 @@ def payment_options():
     """
     Interactive payment processing - prevent drops by offering choices
     """
-    phone = request.args.get('phone', request.values.get('From', ''))
-    
-    resp = VoiceResponse()
-    
-    gather = resp.gather(
-        input='speech dtmf',
-        action='/process-payment-choice',
-        timeout=5,
-        num_digits=1,
-        speech_timeout='auto'
-    )
-    
-    gather.say(
-        "Would you like to take care of your payment right now, or hear about your payment options?",
-        voice='Polly.Joanna-Neural'
-    )
-    
-    # Default to payment methods if no response
-    resp.redirect('/payment-methods')
-    
-    return str(resp)
+    try:
+        resp = VoiceResponse()
+        
+        gather = resp.gather(
+            input='speech dtmf',
+            action='/process-payment-choice',
+            timeout=5,
+            num_digits=1,
+            speech_timeout='auto'
+        )
+        
+        gather.say(
+            "Wanna pay now, or you want to hear your options first?",
+            voice='Polly.Joanna-Neural'
+        )
+        
+        # Default to payment methods if no response
+        resp.redirect('/payment-methods')
+        
+        return str(resp)
+    except Exception as e:
+        print(f"❌ Payment options error: {e}")
+        resp = VoiceResponse()
+        resp.say("Having trouble with that. Let me get you to someone who can help.", voice='Polly.Joanna-Neural')
+        resp.redirect('/transfer-agent')
+        return str(resp)
 
 
 @app.route("/process-payment-choice", methods=['POST'])
@@ -618,8 +625,8 @@ def process_payment_choice():
     if any(word in response for word in ['pay now', 'pay', 'yes', 'yeah', 'sure', 'phone']):
         # Interactive payment via phone
         resp.say(
-            "I'll transfer you to our secure payment system. "
-            "You'll need your policy number and either a credit card or bank account info.",
+            "Cool, I'll get you to the payment system. "
+            "Have your policy number handy, plus a credit card or bank info.",
             voice='Polly.Joanna-Neural'
         )
         
@@ -655,10 +662,10 @@ def payment_methods():
     resp = VoiceResponse()
     
     resp.say(
-        "You've got three ways to pay: "
-        "You can mail a check to P O Box 12345, Boston Mass, 02101. "
-        "Call our payment line at 1-800-555-1234. "
-        "Or just go online to johnhancockltc.com and log into your account.",
+        "You've got three ways: "
+        "Mail a check to P O Box 12345, Boston Mass, 02101. "
+        "Call the payment line at 1-800-555-1234. "
+        "Or just hop online to johnhancockltc.com.",
         voice='Polly.Joanna-Neural'
     )
     
@@ -675,7 +682,7 @@ def payment_methods():
     )
     
     gather.say(
-        "Anything else I can help with?",
+        "Anything else?",
         voice='Polly.Joanna-Neural'
     )
     
@@ -696,7 +703,7 @@ def goodbye():
     
     resp = VoiceResponse()
     resp.say(
-        "Thanks for calling John Hancock. You have a great day!",
+        "Thanks for calling! Have a good one!",
         voice='Polly.Joanna-Neural'
     )
     resp.hangup()

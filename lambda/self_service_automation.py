@@ -65,10 +65,10 @@ def handle_claim_status(phone: str, params: Dict) -> Dict[str, Any]:
     
     if not claim_data:
         return {
-            'responseMessage': "I'm not seeing any active claims in our system right now. "
-                             "If you just submitted one, it can take up to 48 hours to show up. "
-                             "If you'd like to file a new claim, I'd be happy to connect you with someone who can walk you through it. "
-                             "Would you like me to do that?",
+            'responseMessage': "Hmm, I'm not seeing any claims in the system right now. "
+                             "If you just filed one, it might take a day or two to pop up. "
+                             "Need to file a new one? I can get you to the right folks who'll help you out. "
+                             "Want me to connect you?",
             'success': False
         }
     
@@ -87,47 +87,47 @@ def handle_claim_status(phone: str, params: Dict) -> Dict[str, Any]:
     invoices_total = claim_data.get('invoicesTotal', 0)
     
     if status == 'Approved':
-        message = f"Good news! Claim {claim_num} was approved on {date} for ${amount:,.2f}. "
+        message = f"Great news! Claim {claim_num} got approved on {date} for ${amount:,.2f}. "
         
         if claim_data.get('checkMailed'):
             mail_date = claim_data.get('checkMailedDate', date)
-            message += f"We sent your check on {mail_date}, so you should see it in about 5 to 7 business days. "
-            message += "If it doesn't arrive by then, just give us a call and we'll send a replacement. "
+            message += f"We sent your check on {mail_date}, so it should land in your mailbox in about 5 to 7 days. "
+            message += "If it doesn't show up by then, just holler and we'll send another one. "
         else:
-            message += "Your check will go out within the next couple days. "
-            message += "By the way, if you'd like faster payments going forward, just ask about setting up direct deposit. "
+            message += "Your check's going out in the next day or two. "
+            message += "Oh, and if you want faster payments down the road, ask about direct deposit sometime. "
             
     elif status == 'Pending':
         days_remaining = claim_data.get('daysRemaining', 10)
-        message = f"I see claim {claim_num} is still under review. We got it on {claim_data.get('submittedDate', date)}. "
+        message = f"Alright, so claim {claim_num} is still being reviewed. We got it on {claim_data.get('submittedDate', date)}. "
         
         # Add elimination period info if applicable
         if days_remaining_elim > 0:
-            message += f"So far, you've submitted {days_submitted} days toward your {elimination_period} day elimination period. "
-            message += f"You'll need {days_remaining_elim} more days of care before your benefits kick in. "
+            message += f"You're at {days_submitted} days toward your {elimination_period} day elimination period. "
+            message += f"So you'll need about {days_remaining_elim} more days before benefits start. "
         elif days_submitted >= elimination_period:
-            message += f"You've already met your {elimination_period} day elimination period, which is great. "
+            message += f"Good news, you're past your {elimination_period} day elimination period. "
         
         # Add invoice status if needed
         if invoices_needed:
             if invoices_received < invoices_total:
-                message += f"We have {invoices_received} of the {invoices_total} invoices we need. "
-                message += "If you could send us the rest, that'll help us wrap this up. You can fax them to 1-800-555-9999 or upload them on our website. "
+                message += f"We've got {invoices_received} of the {invoices_total} invoices we need. "
+                message += "If you can send the rest over, that'll speed things up. Fax to 1-800-555-9999 or toss them on our website. "
             else:
-                message += "We've got all the invoices we need and our team is looking everything over. "
+                message += "We've got all your invoices and the team's going through everything. "
         
-        message += f"We should have a decision for you in about {days_remaining} business days. "
-        message += "If we need anything else from you, we'll reach out. "
-        message += "You can always check where things stand on our website too. "
+        message += f"Should have an answer for you in about {days_remaining} business days. "
+        message += "If we need anything else, we'll reach out. "
+        message += "You can check anytime on the website too. "
         
     elif status == 'Denied':
-        message = f"I see claim {claim_num} wasn't approved. We sent you a letter on {date} explaining why. "
-        message += "If you have questions or want to talk about your options, I can get you to someone who can review everything with you. "
-        message += "Would you like me to transfer you?"
+        message = f"So claim {claim_num} didn't get approved. We sent you a letter on {date} explaining everything. "
+        message += "Got questions or want to talk it through? I can get you to someone who knows the details. "
+        message += "Want me to transfer you?"
         
     else:
-        message = f"Claim {claim_num} is showing a status of {status}. "
-        message += "If you need more details, I can connect you with someone from our claims team. "
+        message = f"Looks like claim {claim_num} is showing as {status}. "
+        message += "Want to talk to someone from claims about it? "
     
     return {
         'responseMessage': message,
@@ -156,33 +156,33 @@ def handle_payment(phone: str, params: Dict) -> Dict[str, Any]:
     due_date_obj = datetime.strptime(due_date, '%Y-%m-%d')
     due_date_spoken = due_date_obj.strftime('%B %d, %Y')  # e.g., "May 1st, 2026"
     
-    message = f"Your monthly premium is ${premium:,.2f}. "
+    message = f"So your monthly premium is ${premium:,.2f}. "
     
     if payment_data['autopay']:
-        message += f"Since you have autopay set up, we'll automatically withdraw ${premium:,.2f} on {due_date_spoken}. "
-        message += "If you need to make any changes to that, I can connect you with our billing team. "
+        message += f"You've got autopay set up, so we'll pull ${premium:,.2f} on {due_date_spoken}. "
+        message += "Need to change anything with that? I can connect you with billing. "
     else:
         days_until_due = (due_date_obj - datetime.now()).days
         
         if days_until_due < 0:
-            message += f"Just a heads up, your payment was due on {due_date_spoken}. "
-            message += "To keep your coverage active, let's get that taken care of as soon as we can. "
-            message += "I can help you pay right now if you'd like. "
+            message += f"Heads up, your payment was due {due_date_spoken}. "
+            message += "Let's get that taken care of so your coverage stays good. "
+            message += "Want to pay now? "
         elif days_until_due <= 7:
-            message += f"Your payment's coming up on {due_date_spoken}, that's in {days_until_due} days. "
-            message += "Want to go ahead and take care of it now so you don't have to worry about it? "
+            message += f"Your payment's coming up {due_date_spoken}, that's in {days_until_due} days. "
+            message += "Wanna knock it out now so you don't gotta think about it? "
         else:
-            message += f"Your next payment of ${premium:,.2f} is due {due_date_spoken}. "
-            message += "If you're interested, I can tell you about autopay, it makes things a lot easier. "
+            message += f"Next payment of ${premium:,.2f} is due {due_date_spoken}. "
+            message += "Ever think about autopay? Makes life way easier. "
     
     if last_payment:
         last_payment_obj = datetime.strptime(last_payment, '%Y-%m-%d')
         last_payment_spoken = last_payment_obj.strftime('%B %d, %Y')
-        message += f"We got your last payment on {last_payment_spoken}. "
+        message += f"Last one we got from you was {last_payment_spoken}. "
     
     # Provide payment options proactively
     if not payment_data['autopay']:
-        message += "You can pay by phone, mail, or online, whichever works best for you. "
+        message += "You can pay by phone, mail, or online, whatever works. "
     
     return {
         'responseMessage': message,
@@ -206,14 +206,14 @@ def handle_coverage(phone: str, params: Dict) -> Dict[str, Any]:
     lifetime_max = coverage_data['lifetimeMax']
     elimination_period = coverage_data['eliminationPeriod']
     
-    message = f"Your policy gives you ${daily_benefit:,.2f} per day, with a lifetime max of ${lifetime_max:,.0f}. "
-    message += f"You have a {elimination_period} day elimination period, "
-    message += "which just means coverage starts after you've been getting care for that many days. "
+    message = f"Alright, so your policy gives you ${daily_benefit:,.2f} a day, with a lifetime max of ${lifetime_max:,.0f}. "
+    message += f"There's a {elimination_period} day elimination period, "
+    message += "basically meaning coverage starts after you've been in care that many days. "
     
     if coverage_data['inflationProtection']:
-        message += f"You also have {coverage_data['inflationRate']}% inflation protection built in. "
+        message += f"And you've got {coverage_data['inflationRate']}% inflation protection, which is nice. "
     
-    message += "Want me to go into more detail about any of that?"
+    message += "Need more detail on any of that?"
     
     return {
         'responseMessage': message,
@@ -233,19 +233,19 @@ def handle_rate_increase(phone: str, params: Dict) -> Dict[str, Any]:
     current_premium = rate_data['currentPremium']
     has_increase = rate_data.get('hasUpcomingIncrease', False)
     
-    message = f"Right now, your monthly premium is ${current_premium:,.2f}. "
+    message = f"So right now you're paying ${current_premium:,.2f} a month. "
     
     if has_increase:
         new_premium = rate_data['newPremium']
         effective_date = rate_data['effectiveDate']
         increase_pct = rate_data['increasePercentage']
         
-        message += f"It's going up {increase_pct}% to ${new_premium:,.2f} starting {effective_date}. "
-        message += "We sent you a letter with all the details about why. "
-        message += "If you want to talk through it with someone, I can get you connected. Would that help?"
+        message += f"Heads up, it's going up {increase_pct}% to ${new_premium:,.2f} starting {effective_date}. "
+        message += "We sent you a letter with the whole story. "
+        message += "Wanna talk to someone about it?"
     else:
-        message += "You don't have any rate increases coming up. "
-        message += "If you have other questions about your premium, I'm happy to get you to the right person."
+        message += "No rate increases coming your way. "
+        message += "Got other questions about your premium? I can get you to the right person."
     
     return {
         'responseMessage': message,
