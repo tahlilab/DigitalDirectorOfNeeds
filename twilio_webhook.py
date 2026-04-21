@@ -390,6 +390,7 @@ def self_service():
     gather = resp.gather(
         input='speech dtmf',
         action='/anything-else',
+        method='POST',
         timeout=5,
         num_digits=1,
         speech_timeout='auto'
@@ -401,12 +402,12 @@ def self_service():
     )
     
     # Default to goodbye if no response
-    resp.redirect('/goodbye')
+    resp.redirect('/anything-else')
     
     return str(resp)
 
 
-@app.route("/anything-else", methods=['POST'])
+@app.route("/anything-else", methods=['GET', 'POST'])
 def anything_else():
     """
     Handle anything else prompt with restart option
@@ -423,7 +424,7 @@ def anything_else():
         # Restart from the very beginning
         resp.say("No problem! Let's start fresh.", voice='Polly.Joanna-Neural')
         resp.pause(length=1)
-        resp.redirect('/')  # Goes to the initial greeting
+        resp.redirect('/voice')  # Goes to the greeting with menu
     else:
         # End call (2 or "no" or timeout)
         resp.redirect('/goodbye')
@@ -644,6 +645,7 @@ def payment_methods():
     gather = resp.gather(
         input='speech dtmf',
         action='/anything-else',
+        method='POST',
         timeout=5,
         num_digits=1,
         speech_timeout='auto'
@@ -654,7 +656,8 @@ def payment_methods():
         voice='Polly.Joanna-Neural'
     )
     
-    resp.redirect('/goodbye')
+    # Fallback to anything-else endpoint (will redirect to goodbye if no input)
+    resp.redirect('/anything-else')
     
     return str(resp)
 
