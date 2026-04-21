@@ -65,7 +65,7 @@ def voice_greeting():
     
     resp = VoiceResponse()
     
-    # Greeting with speech input and DTMF quick menu
+    # Greeting with natural speech - no menu needed
     gather = resp.gather(
         input='speech dtmf',
         action='/process-intent',
@@ -76,9 +76,7 @@ def voice_greeting():
     )
     
     gather.say(
-        "Thanks for calling John Hancock Long Term Care. "
-        "What can I help you with? "
-        "Or, if you'd like, press 1 for claims, 2 for payments, 3 for coverage questions, or 0 to speak with someone.",
+        "Thanks for calling John Hancock Long Term Care. What can I help you with?",
         voice='Polly.Joanna-Neural'
     )
     
@@ -95,7 +93,7 @@ def continue_call():
     """
     resp = VoiceResponse()
     
-    # Simple prompt without full greeting
+    # Simple prompt without menu - just natural speech
     gather = resp.gather(
         input='speech dtmf',
         action='/process-intent',
@@ -106,8 +104,7 @@ def continue_call():
     )
     
     gather.say(
-        "What else can I help you with? "
-        "Press 1 for claims, 2 for payments, 3 for coverage, or 0 to talk with someone.",
+        "What else can I help you with?",
         voice='Polly.Joanna-Neural'
     )
     
@@ -426,7 +423,7 @@ def self_service():
     )
     
     gather.say(
-        "Anything else I can help with? Press 1 for yes, 2 to end the call, or 3 to start fresh.",
+        "Anything else I can help with?",
         voice='Polly.Joanna-Neural'
     )
     
@@ -439,21 +436,24 @@ def self_service():
 @app.route("/anything-else", methods=['GET', 'POST'])
 def anything_else():
     """
-    Handle anything else prompt with restart option
+    Handle anything else prompt - natural speech recognition
     """
-    response = request.values.get('Digits', request.values.get('SpeechResult', ''))
+    response = request.values.get('Digits', request.values.get('SpeechResult', '')).lower()
     
     resp = VoiceResponse()
     
-    if '1' in response or 'yes' in response.lower():
+    # Check for continuation or restart
+    if any(word in response for word in ['yes', 'yeah', 'yep', 'sure', 'another', 'more', 'continue', 'start over', 'restart', 'beginning', 'fresh']):
         # Continue with another question - use simplified prompt
         resp.redirect('/continue-call')
-    elif '3' in response or 'start over' in response.lower() or 'restart' in response.lower():
-        # Restart - use simplified prompt
-        resp.redirect('/continue-call')
-    else:
-        # End call (2 or "no" or timeout)
+    # Check for explicit no or goodbye
+    elif any(word in response for word in ['no', 'nope', 'done', 'good', 'bye', 'hang up', "that's it", "that's all"]) or not response:
+        # End call
         resp.redirect('/goodbye')
+    else:
+        # If they said something else, ask for clarification
+        resp.say("I didn't catch that. Did you need help with something else?", voice='Polly.Joanna-Neural')
+        resp.redirect('/continue-call')
     
     return str(resp)
 
@@ -479,7 +479,7 @@ def transfer_agent():
     
     gather.say(
         "I can get you to someone right now. The wait's running about 3 to 5 minutes. "
-        "Press 1 if you want to hold, or press 2 and we'll call you back within the hour.",
+        "Would you like to hold, or should we call you back within the hour?",
         voice='Polly.Joanna-Neural'
     )
     
@@ -492,15 +492,16 @@ def transfer_agent():
 @app.route("/process-transfer-choice", methods=['GET', 'POST'])
 def process_transfer_choice():
     """
-    Handle transfer vs callback choice
+    Handle transfer vs callback choice - natural speech
     """
-    response = request.values.get('Digits', request.values.get('SpeechResult', '1'))
+    response = request.values.get('Digits', request.values.get('SpeechResult', '')).lower()
     from_number = request.values.get('From', '')
     call_sid = request.values.get('CallSid', '')
     
     resp = VoiceResponse()
     
-    if '2' in response or 'callback' in response.lower() or 'call me back' in response.lower():
+    # Check for callback keywords
+    if any(word in response for word in ['callback', 'call back', 'call me', 'later', 'no']):
         # Callback option
         resp.say(
             f"Sounds good! We'll give you a call back at {format_phone_number(from_number)} within the hour. "
@@ -518,9 +519,9 @@ def process_transfer_choice():
         
         return str(resp)
     else:
-        # Hold option - provide engaging hold experience
+        # Hold option (default or explicitly stated) - provide engaging hold experience
         resp.say(
-            "Thank you for holding. Let me connect you now. While you wait, you can also manage your policy anytime at our customer portal.",
+            "Alright, connecting you now. While you wait, remember you can also manage your policy anytime on our website.",
             voice='Polly.Joanna-Neural'
         )
         
@@ -562,14 +563,13 @@ def no_input_handler():
     )
     
     gather.say(
-        "I didn't catch that. What can I help you with? "
-        "You can say claims, payments, coverage, or just press 0 to talk with someone.",
+        "I didn't catch that. What can I help you with?",
         voice='Polly.Joanna-Neural'
     )
     
-    # After second no-input, offer callback
+    # After second no-input, offer transfer
     resp.say(
-        "I'm having a hard time hearing you. You can visit our website, or press 0 and I'll get you to someone who can help.",
+        "I'm having a hard time hearing you. Let me get you to someone who can help.",
         voice='Polly.Joanna-Neural'
     )
     resp.redirect('/transfer-agent')
@@ -595,8 +595,7 @@ def payment_options():
     )
     
     gather.say(
-        "Want to take care of your payment right now? "
-        "Press 1 to pay over the phone, press 2 to hear your other options, or press 3 to go back to the main menu.",
+        "Would you like to take care of your payment right now, or hear about your payment options?",
         voice='Polly.Joanna-Neural'
     )
     
@@ -609,18 +608,18 @@ def payment_options():
 @app.route("/process-payment-choice", methods=['POST'])
 def process_payment_choice():
     """
-    Handle payment choice from customer
+    Handle payment choice from customer - natural speech
     """
-    response = request.values.get('Digits', request.values.get('SpeechResult', ''))
-    from_number = request.values.get('From', '')
+    response = request.values.get('Digits', request.values.get('SpeechResult', '')).lower()
     
     resp = VoiceResponse()
     
-    if '1' in response or 'pay now' in response.lower() or 'pay by phone' in response.lower():
+    # Check for payment keywords
+    if any(word in response for word in ['pay now', 'pay', 'yes', 'yeah', 'sure', 'phone']):
         # Interactive payment via phone
         resp.say(
-            "I'll transfer you to our secure automated payment system. "
-            "You'll need your policy number and a credit card or bank account information.",
+            "I'll transfer you to our secure payment system. "
+            "You'll need your policy number and either a credit card or bank account info.",
             voice='Polly.Joanna-Neural'
         )
         
@@ -628,24 +627,22 @@ def process_payment_choice():
         resp.play('http://com.twilio.sounds.music.s3.amazonaws.com/MARKOVICHAMP-Borghestral.mp3')
         resp.pause(length=3)
         resp.say(
-            "In a production system, you would now be connected to the payment system.",
+            "In a production system, you'd be connected to the payment system now.",
             voice='Polly.Joanna-Neural'
         )
         resp.redirect('/goodbye')
         
-    elif '2' in response or 'other methods' in response.lower():
+    elif any(word in response for word in ['options', 'methods', 'ways', 'how', 'other']):
         # Provide payment methods info
         resp.redirect('/payment-methods')
         
-    elif '3' in response or 'main menu' in response.lower():
+    elif any(word in response for word in ['no', 'menu', 'back', 'something else']):
         # Return to main menu
-        resp.say("Returning to the main menu.", voice='Polly.Joanna-Neural')
-        resp.redirect('/voice')
+        resp.redirect('/continue-call')
         
     else:
-        # Unclear response
-        resp.say("I didn't understand that.", voice='Polly.Joanna-Neural')
-        resp.redirect('/payment-options?phone=' + from_number)
+        # Default to payment methods if unclear
+        resp.redirect('/payment-methods')
     
     return str(resp)
 
@@ -678,7 +675,7 @@ def payment_methods():
     )
     
     gather.say(
-        "Anything else? Press 1 for yes, or 2 to end the call.",
+        "Anything else I can help with?",
         voice='Polly.Joanna-Neural'
     )
     
