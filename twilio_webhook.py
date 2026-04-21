@@ -264,13 +264,13 @@ def self_service():
     gather = resp.gather(
         input='speech dtmf',
         action='/anything-else',
-        timeout=3,
+        timeout=5,
         num_digits=1,
         speech_timeout='auto'
     )
     
     gather.say(
-        "Is there anything else I can help you with? Press 1 for yes, or 2 for no.",
+        "Is there anything else I can help you with? Say yes or press 1 to continue, or say no or press 2 to end the call.",
         voice='Polly.Joanna-Neural'
     )
     
