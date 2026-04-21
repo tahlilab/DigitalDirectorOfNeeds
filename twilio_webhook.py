@@ -17,6 +17,7 @@ from twilio.twiml.voice_response import VoiceResponse, Gather
 import sys
 import os
 from pathlib import Path
+from datetime import datetime
 
 # Import Lambda functions
 sys.path.append(str(Path(__file__).parent / 'lambda'))
@@ -34,10 +35,21 @@ app = Flask(__name__)
 sessions = {}
 
 
+def format_phone_number(phone: str) -> str:
+    """Format phone number for speech (e.g., +15551234567 -> 555-123-4567)"""
+    digits = ''.join(filter(str.isdigit, phone))
+    if len(digits) == 11 and digits.startswith('1'):
+        digits = digits[1:]
+    if len(digits) == 10:
+        return f"{digits[0:3]}-{digits[3:6]}-{digits[6:10]}"
+    return phone
+
+
 @app.route("/voice", methods=['POST'])
 def voice_greeting():
     """
     Initial greeting when call comes in
+    Enhanced with quick menu option to reduce wait time
     """
     call_sid = request.values.get('CallSid', '')
     from_number = request.values.get('From', '')
@@ -47,28 +59,31 @@ def voice_greeting():
     # Initialize session
     sessions[call_sid] = {
         'from': from_number,
-        'step': 'greeting'
+        'step': 'greeting',
+        'start_time': datetime.now().isoformat()
     }
     
     resp = VoiceResponse()
     
-    # Greeting with speech input
+    # Greeting with speech input and DTMF quick menu
     gather = resp.gather(
-        input='speech',
+        input='speech dtmf',
         action='/process-intent',
         timeout=3,
         speech_timeout='auto',
-        language='en-US'
+        language='en-US',
+        num_digits=1
     )
     
     gather.say(
         "Thank you for calling John Hancock Long Term Care. "
-        "I'm your digital assistant. How can I help you today?",
+        "I'm your digital assistant. How can I help you today? "
+        "You can also press 1 for claims, 2 for payments, 3 for coverage, or 0 for an agent.",
         voice='Polly.Joanna-Neural'
     )
     
-    # If no input, repeat
-    resp.redirect('/voice')
+    # If no input, offer callback option instead of infinite loop
+    resp.redirect('/no-input-handler')
     
     return str(resp)
 
@@ -77,10 +92,33 @@ def voice_greeting():
 def process_intent():
     """
     Process customer utterance with GPT-4o
+    Enhanced with DTMF quick menu support
     """
     call_sid = request.values.get('CallSid', '')
     utterance = request.values.get('SpeechResult', '')
+    digits = request.values.get('Digits', '')
     from_number = request.values.get('From', '')
+    
+    # Handle DTMF quick menu
+    if digits:
+        print(f"🔢 Customer pressed: {digits}")
+        intent_map = {
+            '1': 'CLAIM_STATUS',
+            '2': 'PAYMENT',
+            '3': 'COVERAGE_INQUIRY',
+            '0': 'AGENT_REQUEST'
+        }
+        
+        if digits in intent_map:
+            resp = VoiceResponse()
+            intent = intent_map[digits]
+            
+            if intent == 'AGENT_REQUEST':
+                resp.redirect('/transfer-agent')
+            else:
+                resp.redirect(f'/self-service?intent={intent}&phone={from_number}')
+            
+            return str(resp)
     
     print(f"🎤 Customer said: '{utterance}'")
     
@@ -317,6 +355,12 @@ def self_service():
                             voice='Polly.Joanna-Neural'
                         )
                 
+                # For PAYMENT intent, offer interactive payment options
+                if intent == 'PAYMENT':
+                    resp.pause(length=1)
+                    resp.redirect('/payment-options?phone=' + phone)
+                    return str(resp)
+                
             else:
                 resp.say(
                     "I'm having trouble looking that up. Let me connect you with an agent.",
@@ -390,23 +434,223 @@ def anything_else():
 @app.route("/transfer-agent", methods=['GET', 'POST'])
 def transfer_agent():
     """
-    Transfer to agent (simulated)
+    Transfer to agent with enhanced experience to prevent drops
+    Offers callback option and realistic wait time estimates
+    """
+    call_sid = request.values.get('CallSid', '')
+    
+    resp = VoiceResponse()
+    
+    # Offer callback option to prevent drops during long holds
+    gather = resp.gather(
+        input='speech dtmf',
+        action='/process-transfer-choice',
+        timeout=5,
+        num_digits=1,
+        speech_timeout='auto'
+    )
+    
+    gather.say(
+        "I can connect you with a specialist now. Current wait time is approximately 3 to 5 minutes. "
+        "Press 1 to hold, or press 2 to request a callback within the next hour.",
+        voice='Polly.Joanna-Neural'
+    )
+    
+    # Default to hold if no response
+    resp.redirect('/process-transfer-choice?Digits=1')
+    
+    return str(resp)
+
+
+@app.route("/process-transfer-choice", methods=['GET', 'POST'])
+def process_transfer_choice():
+    """
+    Handle transfer vs callback choice
+    """
+    response = request.values.get('Digits', request.values.get('SpeechResult', '1'))
+    from_number = request.values.get('From', '')
+    call_sid = request.values.get('CallSid', '')
+    
+    resp = VoiceResponse()
+    
+    if '2' in response or 'callback' in response.lower() or 'call me back' in response.lower():
+        # Callback option
+        resp.say(
+            f"Perfect! We'll call you back at {format_phone_number(from_number)} within the next hour. "
+            "You'll receive a confirmation text message shortly. Thank you for calling!",
+            voice='Polly.Joanna-Neural'
+        )
+        resp.hangup()
+        
+        # Log callback request (in production, create ticket in CRM)
+        print(f"📞 Callback requested for {from_number} at {datetime.now()}")
+        
+        # Clean up session
+        if call_sid in sessions:
+            del sessions[call_sid]
+        
+        return str(resp)
+    else:
+        # Hold option - provide engaging hold experience
+        resp.say(
+            "Thank you for holding. Let me connect you now. While you wait, you can also manage your policy anytime at our customer portal.",
+            voice='Polly.Joanna-Neural'
+        )
+        
+        # In production, use resp.dial() to transfer to real agent line
+        # For demo, we'll play hold music with periodic updates
+        resp.play('http://com.twilio.sounds.music.s3.amazonaws.com/MARKOVICHAMP-Borghestral.mp3')
+        
+        # Periodic update to prevent customer from hanging up
+        resp.pause(length=5)
+        resp.say(
+            "You're next in line. An agent will be with you shortly.",
+            voice='Polly.Joanna-Neural'
+        )
+        
+        resp.pause(length=5)
+        resp.say(
+            "Thank you for holding. In a production system, you would now be connected to an agent.",
+            voice='Polly.Joanna-Neural'
+        )
+        
+        resp.redirect('/goodbye')
+        
+        return str(resp)
+
+
+@app.route("/no-input-handler", methods=['POST'])
+def no_input_handler():
+    """
+    Handle no input after greeting - offer callback instead of loop
+    """
+    resp = VoiceResponse()
+    
+    gather = resp.gather(
+        input='speech dtmf',
+        action='/process-intent',
+        timeout=3,
+        num_digits=1,
+        speech_timeout='auto'
+    )
+    
+    gather.say(
+        "I didn't hear you. How can I help you today? "
+        "Say 'claims', 'payments', 'coverage', or press 0 for an agent.",
+        voice='Polly.Joanna-Neural'
+    )
+    
+    # After second no-input, offer callback
+    resp.say(
+        "I'm having trouble hearing you. For faster service, visit our website or press 0 to speak with an agent.",
+        voice='Polly.Joanna-Neural'
+    )
+    resp.redirect('/transfer-agent')
+    
+    return str(resp)
+
+
+@app.route("/payment-options", methods=['GET', 'POST'])
+def payment_options():
+    """
+    Interactive payment processing - prevent drops by offering choices
+    """
+    phone = request.args.get('phone', request.values.get('From', ''))
+    
+    resp = VoiceResponse()
+    
+    gather = resp.gather(
+        input='speech dtmf',
+        action='/process-payment-choice',
+        timeout=5,
+        num_digits=1,
+        speech_timeout='auto'
+    )
+    
+    gather.say(
+        "Would you like to make a payment now? "
+        "Press 1 to pay by phone, press 2 to hear other payment methods, or press 3 to return to the main menu.",
+        voice='Polly.Joanna-Neural'
+    )
+    
+    # Default to payment methods if no response
+    resp.redirect('/payment-methods')
+    
+    return str(resp)
+
+
+@app.route("/process-payment-choice", methods=['POST'])
+def process_payment_choice():
+    """
+    Handle payment choice from customer
+    """
+    response = request.values.get('Digits', request.values.get('SpeechResult', ''))
+    from_number = request.values.get('From', '')
+    
+    resp = VoiceResponse()
+    
+    if '1' in response or 'pay now' in response.lower() or 'pay by phone' in response.lower():
+        # Interactive payment via phone
+        resp.say(
+            "I'll transfer you to our secure automated payment system. "
+            "You'll need your policy number and a credit card or bank account information.",
+            voice='Polly.Joanna-Neural'
+        )
+        
+        # In production, dial payment IVR: resp.dial('+18005551234')
+        resp.play('http://com.twilio.sounds.music.s3.amazonaws.com/MARKOVICHAMP-Borghestral.mp3')
+        resp.pause(length=3)
+        resp.say(
+            "In a production system, you would now be connected to the payment system.",
+            voice='Polly.Joanna-Neural'
+        )
+        resp.redirect('/goodbye')
+        
+    elif '2' in response or 'other methods' in response.lower():
+        # Provide payment methods info
+        resp.redirect('/payment-methods')
+        
+    elif '3' in response or 'main menu' in response.lower():
+        # Return to main menu
+        resp.say("Returning to the main menu.", voice='Polly.Joanna-Neural')
+        resp.redirect('/voice')
+        
+    else:
+        # Unclear response
+        resp.say("I didn't understand that.", voice='Polly.Joanna-Neural')
+        resp.redirect('/payment-options?phone=' + from_number)
+    
+    return str(resp)
+
+
+@app.route("/payment-methods", methods=['GET', 'POST'])
+def payment_methods():
+    """
+    Provide payment method information
     """
     resp = VoiceResponse()
     
     resp.say(
-        "Let me connect you with a specialist who can help. Please hold.",
+        "You can pay your premium in three ways: "
+        "One, mail a check to P O Box 12345, Boston Massachusetts, 02101. "
+        "Two, call our automated payment line at 1-800-555-1234. "
+        "Or three, visit our website at johnhancockltc.com and log in to your account.",
         voice='Polly.Joanna-Neural'
     )
     
-    # In production, use resp.dial() to transfer to real agent line
-    # For demo, we'll just play hold music
-    resp.play('http://com.twilio.sounds.music.s3.amazonaws.com/MARKOVICHAMP-Borghestral.mp3')
+    resp.pause(length=1)
     
-    # Simulate agent pickup after 10 seconds
-    resp.pause(length=10)
-    resp.say(
-        "Thank you for holding. In a production system, you would now be connected to an agent.",
+    # Offer to continue or end
+    gather = resp.gather(
+        input='speech dtmf',
+        action='/anything-else',
+        timeout=5,
+        num_digits=1,
+        speech_timeout='auto'
+    )
+    
+    gather.say(
+        "Is there anything else I can help you with? Press 1 to continue, or press 2 to end the call.",
         voice='Polly.Joanna-Neural'
     )
     

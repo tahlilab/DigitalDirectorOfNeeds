@@ -51,7 +51,8 @@ def lambda_handler(event, context):
 
 def handle_claim_status(phone: str, params: Dict) -> Dict[str, Any]:
     """
-    Look up claim status from Salesforce
+    Look up claim status with proactive next steps
+    Enhanced to provide complete information and prevent escalation
     """
     # For demo: Mock Salesforce lookup
     # For production: Use Salesforce API
@@ -63,7 +64,9 @@ def handle_claim_status(phone: str, params: Dict) -> Dict[str, Any]:
     
     if not claim_data:
         return {
-            'responseMessage': "I don't see any active claims on file. If you recently submitted a claim, it may take 24 to 48 hours to appear in our system. Would you like to speak with an agent?",
+            'responseMessage': "I don't see any active claims on file. If you recently submitted a claim, it may take 24 to 48 hours to appear in our system. "
+                             "If you need to file a new claim, I can connect you with our claims department. They'll walk you through the process. "
+                             "Would you like me to transfer you?",
             'success': False
         }
     
@@ -79,17 +82,25 @@ def handle_claim_status(phone: str, params: Dict) -> Dict[str, Any]:
         if claim_data.get('checkMailed'):
             mail_date = claim_data.get('checkMailedDate', date)
             message += f"Your reimbursement check was mailed on {mail_date} and should arrive within 5 to 7 business days. "
+            message += "If you don't receive it within that timeframe, please call us back and we can issue a replacement check. "
         else:
             message += "Your reimbursement check will be mailed within 2 business days. "
+            message += "For faster payments in the future, ask us about direct deposit options. "
             
     elif status == 'Pending':
-        message = f"Your claim number {claim_num} is currently pending review. We received it on {claim_data.get('submittedDate', date)} and you should receive a decision within {claim_data.get('daysRemaining', 10)} business days. "
+        days_remaining = claim_data.get('daysRemaining', 10)
+        message = f"Your claim number {claim_num} is currently pending review. We received it on {claim_data.get('submittedDate', date)} and you should receive a decision within {days_remaining} business days. "
+        message += "Our claims team is reviewing the documentation. If we need any additional information, we'll contact you directly. "
+        message += "You can check your claim status anytime on our customer portal. "
         
     elif status == 'Denied':
-        message = f"I see that claim number {claim_num} was not approved. A detailed explanation was mailed to you on {date}. If you have questions about this decision, I can connect you with a claims specialist. Would you like me to do that?"
+        message = f"I see that claim number {claim_num} was not approved. A detailed explanation was mailed to you on {date}. "
+        message += "If you have questions about this decision or would like to discuss your options, I can connect you with a claims specialist who can review your case. "
+        message += "Would you like me to transfer you now?"
         
     else:
         message = f"Your claim number {claim_num} is currently in {status} status. "
+        message += "If you have specific questions about your claim, I can connect you with a claims specialist. "
     
     return {
         'responseMessage': message,
@@ -101,7 +112,8 @@ def handle_claim_status(phone: str, params: Dict) -> Dict[str, Any]:
 
 def handle_payment(phone: str, params: Dict) -> Dict[str, Any]:
     """
-    Handle payment inquiry or process payment
+    Handle payment inquiry with proactive options
+    Enhanced to prevent customer drop-off
     """
     # Mock payment data
     payment_data = mock_payment_lookup(phone)
@@ -121,26 +133,35 @@ def handle_payment(phone: str, params: Dict) -> Dict[str, Any]:
     
     if payment_data['autopay']:
         message += f"You have automatic payments set up. Your next payment of ${premium:,.2f} will be withdrawn on {due_date_spoken}. "
+        message += "If you'd like to make changes to your autopay settings, I can connect you with our billing department. "
     else:
         days_until_due = (due_date_obj - datetime.now()).days
         
         if days_until_due < 0:
             message += f"Your payment was due on {due_date_spoken}. To avoid a lapse in coverage, please make a payment as soon as possible. "
+            message += "I can help you make a payment right now. "
         elif days_until_due <= 7:
             message += f"Your payment is due on {due_date_spoken}, which is in {days_until_due} days. "
+            message += "Would you like to make a payment now to ensure your coverage continues uninterrupted? "
         else:
             message += f"Your next payment of ${premium:,.2f} is due on {due_date_spoken}. "
+            message += "To save time and never miss a payment, ask me about setting up automatic payments. "
     
     if last_payment:
         last_payment_obj = datetime.strptime(last_payment, '%Y-%m-%d')
         last_payment_spoken = last_payment_obj.strftime('%B %d, %Y')
         message += f"Your last payment was received on {last_payment_spoken}. "
     
-    message += "To make a payment now, I can transfer you to our automated payment system. Would you like to do that?"
+    # Provide payment options proactively
+    if not payment_data['autopay']:
+        message += "You can pay by phone, mail, or online through our customer portal. "
     
     return {
         'responseMessage': message,
-        'success': True
+        'success': True,
+        'premium': premium,
+        'dueDate': due_date,
+        'autopay': payment_data['autopay']
     }
 
 
