@@ -93,8 +93,13 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
         'RATE_INCREASE': [
             r'rate.*increase',
             r'premium.*went up',
+            r'premium.*increase',
+            r'premium.*increasing',
             r'letter.*rate',
-            r'why.*higher'
+            r'why.*higher',
+            r'why.*premium',
+            r'cost.*more',
+            r'price.*increase'
         ],
         'AGENT_REQUEST': [
             r'speak.*agent',
@@ -252,7 +257,7 @@ def can_self_service(intent: str, confidence: float, relationship: str) -> bool:
         return False
     
     # Self-serviceable intents
-    self_serve_intents = ['CLAIM_STATUS', 'PAYMENT', 'COVERAGE_INQUIRY']
+    self_serve_intents = ['CLAIM_STATUS', 'PAYMENT', 'COVERAGE_INQUIRY', 'RATE_INCREASE']
     
     if intent not in self_serve_intents:
         return False
