@@ -76,9 +76,9 @@ def voice_greeting():
     )
     
     gather.say(
-        "Thank you for calling John Hancock Long Term Care. "
-        "How can I help you today? "
-        "You can press 1 for claims, 2 for payments, 3 for coverage, or 0 for an agent.",
+        "Thanks for calling John Hancock Long Term Care. "
+        "What can I help you with? "
+        "Or, if you'd like, press 1 for claims, 2 for payments, 3 for coverage questions, or 0 to speak with someone.",
         voice='Polly.Joanna-Neural'
     )
     
@@ -106,8 +106,8 @@ def continue_call():
     )
     
     gather.say(
-        "How can I help you? "
-        "Press 1 for claims, 2 for payments, 3 for coverage, or 0 for an agent.",
+        "What else can I help you with? "
+        "Press 1 for claims, 2 for payments, 3 for coverage, or 0 to talk with someone.",
         voice='Polly.Joanna-Neural'
     )
     
@@ -426,7 +426,7 @@ def self_service():
     )
     
     gather.say(
-        "Is there anything else I can help you with? Press 1 to continue, press 2 to end the call, or press 3 to start over from the beginning.",
+        "Anything else I can help with? Press 1 for yes, 2 to end the call, or 3 to start fresh.",
         voice='Polly.Joanna-Neural'
     )
     
@@ -478,8 +478,8 @@ def transfer_agent():
     )
     
     gather.say(
-        "I can connect you with a specialist now. Current wait time is approximately 3 to 5 minutes. "
-        "Press 1 to hold, or press 2 to request a callback within the next hour.",
+        "I can get you to someone right now. The wait's running about 3 to 5 minutes. "
+        "Press 1 if you want to hold, or press 2 and we'll call you back within the hour.",
         voice='Polly.Joanna-Neural'
     )
     
@@ -503,8 +503,8 @@ def process_transfer_choice():
     if '2' in response or 'callback' in response.lower() or 'call me back' in response.lower():
         # Callback option
         resp.say(
-            f"Perfect! We'll call you back at {format_phone_number(from_number)} within the next hour. "
-            "You'll receive a confirmation text message shortly. Thank you for calling!",
+            f"Sounds good! We'll give you a call back at {format_phone_number(from_number)} within the hour. "
+            "You'll get a text confirmation too. Thanks for calling!",
             voice='Polly.Joanna-Neural'
         )
         resp.hangup()
@@ -531,13 +531,13 @@ def process_transfer_choice():
         # Periodic update to prevent customer from hanging up
         resp.pause(length=5)
         resp.say(
-            "You're next in line. An agent will be with you shortly.",
+            "You're up next. Someone will be right with you.",
             voice='Polly.Joanna-Neural'
         )
         
         resp.pause(length=5)
         resp.say(
-            "Thank you for holding. In a production system, you would now be connected to an agent.",
+            "Thanks for hanging in there. In a real system, you'd be talking to someone right now.",
             voice='Polly.Joanna-Neural'
         )
         
@@ -562,14 +562,14 @@ def no_input_handler():
     )
     
     gather.say(
-        "I didn't hear you. How can I help you today? "
-        "Say 'claims', 'payments', 'coverage', or press 0 for an agent.",
+        "I didn't catch that. What can I help you with? "
+        "You can say claims, payments, coverage, or just press 0 to talk with someone.",
         voice='Polly.Joanna-Neural'
     )
     
     # After second no-input, offer callback
     resp.say(
-        "I'm having trouble hearing you. For faster service, visit our website or press 0 to speak with an agent.",
+        "I'm having a hard time hearing you. You can visit our website, or press 0 and I'll get you to someone who can help.",
         voice='Polly.Joanna-Neural'
     )
     resp.redirect('/transfer-agent')
@@ -595,8 +595,8 @@ def payment_options():
     )
     
     gather.say(
-        "Would you like to make a payment now? "
-        "Press 1 to pay by phone, press 2 to hear other payment methods, or press 3 to return to the main menu.",
+        "Want to take care of your payment right now? "
+        "Press 1 to pay over the phone, press 2 to hear your other options, or press 3 to go back to the main menu.",
         voice='Polly.Joanna-Neural'
     )
     
@@ -658,10 +658,10 @@ def payment_methods():
     resp = VoiceResponse()
     
     resp.say(
-        "You can pay your premium in three ways: "
-        "One, mail a check to P O Box 12345, Boston Massachusetts, 02101. "
-        "Two, call our automated payment line at 1-800-555-1234. "
-        "Or three, visit our website at johnhancockltc.com and log in to your account.",
+        "You've got three ways to pay: "
+        "You can mail a check to P O Box 12345, Boston Mass, 02101. "
+        "Call our payment line at 1-800-555-1234. "
+        "Or just go online to johnhancockltc.com and log into your account.",
         voice='Polly.Joanna-Neural'
     )
     
@@ -678,7 +678,7 @@ def payment_methods():
     )
     
     gather.say(
-        "Is there anything else I can help you with? Press 1 to continue, or press 2 to end the call.",
+        "Anything else? Press 1 for yes, or 2 to end the call.",
         voice='Polly.Joanna-Neural'
     )
     
@@ -699,7 +699,7 @@ def goodbye():
     
     resp = VoiceResponse()
     resp.say(
-        "Thank you for calling John Hancock Long Term Care. Have a great day!",
+        "Thanks for calling John Hancock. You have a great day!",
         voice='Polly.Joanna-Neural'
     )
     resp.hangup()
