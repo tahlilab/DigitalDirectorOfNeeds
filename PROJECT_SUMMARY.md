@@ -268,7 +268,24 @@ Customer Experience: "Customer shows frustration - use empathetic language"
 15. System: "They're really good at finding exactly what you need. Anything else I can help with?"
 ```
 
-### Example 5: DTMF Quick Menu (No Speech)
+### Example 5: Low Confidence with Clarification (Leading to Provider)
+```
+1. Customer: "I need some help with something" [vague request]
+2. [GPT-4o Classification]
+   - Intent: UNKNOWN (62% confidence - below 70% threshold)
+   - Sentiment: neutral
+3. [Low Confidence Trigger]
+4. System: "I want to make sure I help you correctly. Are you calling about a claim, payment, coverage, finding a provider, or something else?"
+5. Customer: "I need to find a care facility"
+6. [GPT-4o Re-Classification]
+   - Intent: PROVIDER_REFERRAL (92% confidence)
+   - Can self-serve: true
+7. System: "Let me look that up for you." [2 sec pause]
+8. System: "Got it! So we partner with The Helper Bees - they're really helpful at finding providers..."
+9. [Proceeds to provider referral flow with email verification]
+```
+
+### Example 6: DTMF Quick Menu (No Speech)
 ```
 1. Customer calls
 2. System: "Thank you for calling... Press 1 for claims, 2 for payments, 3 for coverage, or 0 for an agent."
@@ -328,9 +345,9 @@ Customer Experience: "Customer shows frustration - use empathetic language"
 - Improves CSAT scores
 
 ### 8. **Intelligent Retry Logic (2-Attempt System)**
-- **Low Confidence (<70%):** System asks for clarification
-  - **Attempt 1:** "I want to make sure I help you correctly. Are you calling about a claim, payment, or something else?"
-  - **Attempt 2:** "Let me try to help. Say 'claim' if it's about a claim, 'payment' for billing, or 'agent' to speak with someone."
+- **Low Confidence (<70%):** System asks for clarification with ALL intent options
+  - **Attempt 1:** "I want to make sure I help you correctly. Are you calling about a claim, payment, coverage, finding a provider, or something else?"
+  - **Attempt 2:** "Let me try to help. Say 'claim' for claim status, 'payment' for billing, 'coverage' for benefits, 'provider' to find care, 'rate' for rate questions, or 'agent' to speak with someone."
   - **After 2 attempts:** "Let me connect you with someone who can help you better." → Transfer to agent
 
 - **Provider Email Verification:** Clearer yes/no questions

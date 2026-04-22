@@ -201,7 +201,7 @@ def process_intent():
         print("⚠️  Low confidence, asking for clarification")
         resp.say(
             "I want to make sure I help you correctly. Are you calling about a claim, "
-            "a payment, or something else?",
+            "a payment, coverage, finding a provider, or something else?",
             voice='Polly.Salli-Neural'
         )
         
@@ -258,9 +258,10 @@ def process_clarification():
         resp = VoiceResponse()
         
         if retry_count == 1:
-            # First retry - ask more clearly
+            # First retry - ask more clearly with all options
             resp.say(
-                "Sorry, didn't catch that. Are you calling about a claim, payment, coverage, or do you need to speak with someone?",
+                "Sorry, didn't catch that. Are you calling about a claim, payment, coverage, "
+                "finding a provider, a rate increase, or do you need to speak with someone?",
                 voice='Polly.Salli-Neural'
             )
             gather = resp.gather(
@@ -328,9 +329,10 @@ def process_clarification():
             resp.redirect('/transfer-agent')
             return str(resp)
         else:
-            # Try one more time with specific options
+            # Try one more time with specific simplified options
             resp.say(
-                "Let me try to help. Say 'claim' if it's about a claim, 'payment' for billing, "
+                "Let me try to help. Say 'claim' for claim status, 'payment' for billing, "
+                "'coverage' for benefits, 'provider' to find care, 'rate' for rate questions, "
                 "or 'agent' to speak with someone.",
                 voice='Polly.Salli-Neural'
             )
