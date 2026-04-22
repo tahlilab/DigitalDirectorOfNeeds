@@ -109,6 +109,36 @@
 
 **Patterns:** 15+ regex patterns covering agent, person, representative, human, specialist
 
+### 6. PROVIDER_REFERRAL
+**What it handles:**
+- "I need to find a provider"
+- "Looking for a nursing home"
+- "Help me find home care"
+- "Need a care facility"
+
+**Response includes:**
+- Partnership introduction (The Helper Bees)
+- Email verification for outreach
+- SLA expectation (1-2 business days)
+- Automatic Salesforce Health Cloud note creation
+- **Retry logic:** 2 attempts with clearer options before agent transfer
+
+**Flow:**
+1. Customer requests provider help
+2. System explains Helper Bees partnership
+3. Verifies email address on file
+4. Creates Salesforce note
+5. Sets expectation for 1-2 day response
+6. Daily SFTP feed to Helper Bees
+7. Email outreach with provider options
+
+**Patterns:** 20+ regex patterns covering provider, doctor, facility, nursing home, assisted living, home care
+
+**Voice Recognition Retries:**
+- **Attempt 1:** "Sorry, didn't catch that. Is that email still good? Say yes or no."
+- **Attempt 2:** "Hmm, having trouble hearing you. Say 'yes' if the email is good, or 'no' if you need to update it."
+- **After 2 attempts:** Transfer to agent with friendly handoff
+
 ---
 
 ## 🤖 AI Recommendations Engine
@@ -216,7 +246,29 @@ Customer Experience: "Customer shows frustration - use empathetic language"
 8. [Call ends - no hold abandonment]
 ```
 
-### Example 4: DTMF Quick Menu (No Speech)
+### Example 4: Provider Referral (with Retry Logic)
+```
+1. Customer: "I need to find a nursing home"
+2. [GPT-4o Classification]
+   - Intent: PROVIDER_REFERRAL (88% confidence)
+   - Sentiment: neutral
+   - Can self-serve: true
+3. System: "Let me look that up for you." [2 sec pause]
+4. System: "Got it! So we partner with The Helper Bees - they're really helpful at finding providers."
+5. System: "I'm gonna put in a request for them to reach out."
+6. System: "Quick thing - is customer7738@example.com still the best email for you?"
+7. Customer: [Background noise - system doesn't catch response]
+8. [Retry Attempt 1]
+9. System: "Sorry, didn't catch that. Is that email still good? Say yes or no."
+10. Customer: [Still unclear]
+11. [Retry Attempt 2]
+12. System: "Hmm, having trouble hearing you. Say 'yes' if the email is good, or 'no' if you need to update it."
+13. Customer: "Yes"
+14. System: "Perfect! I've put in the request. The Helper Bees will email you within 1-2 business days with provider options."
+15. System: "They're really good at finding exactly what you need. Anything else I can help with?"
+```
+
+### Example 5: DTMF Quick Menu (No Speech)
 ```
 1. Customer calls
 2. System: "Thank you for calling... Press 1 for claims, 2 for payments, 3 for coverage, or 0 for an agent."
@@ -274,6 +326,24 @@ Customer Experience: "Customer shows frustration - use empathetic language"
 - "I understand your concern, and I apologize for any frustration."
 - Then proceeds with information
 - Improves CSAT scores
+
+### 8. **Intelligent Retry Logic (2-Attempt System)**
+- **Low Confidence (<70%):** System asks for clarification
+  - **Attempt 1:** "I want to make sure I help you correctly. Are you calling about a claim, payment, or something else?"
+  - **Attempt 2:** "Let me try to help. Say 'claim' if it's about a claim, 'payment' for billing, or 'agent' to speak with someone."
+  - **After 2 attempts:** "Let me connect you with someone who can help you better." → Transfer to agent
+
+- **Provider Email Verification:** Clearer yes/no questions
+  - **Attempt 1:** "Sorry, didn't catch that. Is that email still good? Say yes or no."
+  - **Attempt 2:** "Hmm, having trouble hearing you. Say 'yes' if the email is good, or 'no' if you need to update it."
+  - **After 2 attempts:** "Alright, let me get you to someone who can help set this up." → Transfer to agent
+
+- **Benefits:**
+  - Reduces customer frustration with progressive clarification
+  - Gives system 2 chances to understand before escalating
+  - Uses increasingly simple yes/no questions
+  - Friendly handoff to agent if still unclear
+  - Prevents infinite loops and call abandonment
 
 ---
 
@@ -540,7 +610,7 @@ redis==5.0.0                      # Session storage
 
 ## 🎯 Key Features Summary
 
-1. ✅ **100+ Intent Patterns** - Comprehensive natural language coverage
+1. ✅ **120+ Intent Patterns** - Comprehensive natural language coverage across 6 intents
 2. ✅ **AI-Powered Recommendations** - Proactive next steps for every interaction
 3. ✅ **Sentiment Detection** - Empathy-first responses for frustrated customers
 4. ✅ **Interactive Payment** - Complete transactions on the same call
@@ -552,16 +622,20 @@ redis==5.0.0                      # Session storage
 10. ✅ **No Silent Holds** - Periodic updates prevent hangups
 11. ✅ **Third-Party Detection** - POA verification required
 12. ✅ **Mock Data System** - Phone-based testing without live APIs
+13. ✅ **Provider Referral Flow** - Helper Bees partnership with email verification
+14. ✅ **Intelligent Retry Logic** - 2-attempt system with progressive clarification before agent transfer
 
 ---
 
 ## 🚦 Next Steps
 
 ### Phase 1: Optimization (Current)
-- [x] Intent pattern expansion (100+ patterns)
+- [x] Intent pattern expansion (120+ patterns across 6 intents)
 - [x] AI recommendations engine
 - [x] Callback option implementation
 - [x] Interactive payment flow
+- [x] Provider referral flow with Helper Bees integration
+- [x] Intelligent retry logic (2-attempt system)
 - [ ] A/B testing on live calls
 - [ ] Analyze call transcripts for missed patterns
 

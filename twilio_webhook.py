@@ -235,12 +235,51 @@ def process_intent():
 def process_clarification():
     """
     Handle clarification response when confidence is low
+    Includes retry logic with 2 attempts before agent transfer
     """
     call_sid = request.values.get('CallSid', '')
     utterance = request.values.get('SpeechResult', '')
     from_number = request.values.get('From', '')
     
     print(f"🔄 Clarification received: {utterance}")
+    
+    # Track retry attempts
+    if call_sid in sessions:
+        retry_count = sessions[call_sid].get('clarification_retry', 0)
+    else:
+        sessions[call_sid] = {'clarification_retry': 0}
+        retry_count = 0
+    
+    # If no utterance captured
+    if not utterance:
+        retry_count += 1
+        sessions[call_sid]['clarification_retry'] = retry_count
+        
+        resp = VoiceResponse()
+        
+        if retry_count == 1:
+            # First retry - ask more clearly
+            resp.say(
+                "Sorry, didn't catch that. Are you calling about a claim, payment, coverage, or do you need to speak with someone?",
+                voice='Polly.Salli-Neural'
+            )
+            gather = resp.gather(
+                input='speech',
+                action='/process-clarification',
+                timeout=5,
+                speech_timeout='auto'
+            )
+            return str(resp)
+        
+        elif retry_count >= 2:
+            # After 2 retries - transfer to agent
+            resp.say(
+                "Alright, let me get you to someone who can help. Hold on just a sec.",
+                voice='Polly.Salli-Neural'
+            )
+            sessions[call_sid]['clarification_retry'] = 0
+            resp.redirect('/transfer-agent')
+            return str(resp)
     
     # Process the clarified intent
     if gpt4o_handler:
@@ -270,6 +309,41 @@ def process_clarification():
         }
     
     resp = VoiceResponse()
+    
+    # Check confidence again
+    confidence = int(result.get('confidence', '0'))
+    
+    if confidence < 70:
+        # Still low confidence after clarification
+        retry_count += 1
+        sessions[call_sid]['clarification_retry'] = retry_count
+        
+        if retry_count >= 2:
+            # After 2 attempts, transfer to agent
+            resp.say(
+                "Let me connect you with someone who can help you better.",
+                voice='Polly.Salli-Neural'
+            )
+            sessions[call_sid]['clarification_retry'] = 0
+            resp.redirect('/transfer-agent')
+            return str(resp)
+        else:
+            # Try one more time with specific options
+            resp.say(
+                "Let me try to help. Say 'claim' if it's about a claim, 'payment' for billing, "
+                "or 'agent' to speak with someone.",
+                voice='Polly.Salli-Neural'
+            )
+            gather = resp.gather(
+                input='speech',
+                action='/process-clarification',
+                timeout=5,
+                speech_timeout='auto'
+            )
+            return str(resp)
+    
+    # Reset retry counter on success
+    sessions[call_sid]['clarification_retry'] = 0
     
     # Route based on self-service capability
     intent_name = result.get('intentName', 'UNKNOWN')
@@ -706,16 +780,25 @@ def provider_email_verify():
     """
     Handle email verification for provider referral
     Following flow: verify email → send to Helper Bees → set SLA expectation
+    Includes retry logic with 2 attempts before agent transfer
     """
     resp = VoiceResponse()
     phone = request.args.get('phone', request.values.get('From', ''))
+    call_sid = request.values.get('CallSid', '')
+    
+    # Track retry attempts
+    if call_sid in sessions:
+        retry_count = sessions[call_sid].get('provider_email_retry', 0)
+    else:
+        sessions[call_sid] = {'provider_email_retry': 0}
+        retry_count = 0
     
     # Get the speech response if any
     speech = request.values.get('SpeechResult', '').lower()
     
     if speech:
         # Check for yes/confirmation
-        if any(word in speech for word in ['yes', 'yeah', 'correct', 'right', 'good', 'fine', 'yep']):
+        if any(word in speech for word in ['yes', 'yeah', 'correct', 'right', 'good', 'fine', 'yep', 'sure', 'ok', 'okay']):
             resp.say(
                 "Perfect! I've put in the request. The Helper Bees will email you within 1-2 business days with provider options. "
                 "They're really good at finding exactly what you need. Anything else I can help with?",
@@ -741,14 +824,39 @@ def provider_email_verify():
             
             return str(resp)
     
-    # No input or unclear - ask again
-    resp.say(
-        "Sorry, didn't catch that. Is that email still good?",
-        voice='Polly.Salli-Neural'
-    )
-    resp.redirect('/provider-email-verify?phone=' + phone)
+    # No input or unclear - retry with clearer options
+    retry_count += 1
+    sessions[call_sid]['provider_email_retry'] = retry_count
     
-    return str(resp)
+    if retry_count == 1:
+        # First retry - ask more clearly
+        resp.say(
+            "Sorry, didn't catch that. Just need to know - is that email address still good? Say yes or no.",
+            voice='Polly.Salli-Neural'
+        )
+        resp.redirect('/provider-email-verify?phone=' + phone)
+        return str(resp)
+    
+    elif retry_count == 2:
+        # Second retry - offer clearer binary choice
+        resp.say(
+            "Hmm, having trouble hearing you. Let me make this easier. "
+            "Say 'yes' if the email is good, or say 'no' if you need to update it.",
+            voice='Polly.Salli-Neural'
+        )
+        resp.redirect('/provider-email-verify?phone=' + phone)
+        return str(resp)
+    
+    else:
+        # After 2 retries - transfer to agent
+        resp.say(
+            "Alright, let me get you to someone who can help set this up. Hold on just a sec.",
+            voice='Polly.Salli-Neural'
+        )
+        # Reset retry counter
+        sessions[call_sid]['provider_email_retry'] = 0
+        resp.redirect('/transfer-agent')
+        return str(resp)
 
 
 @app.route("/provider-email-collected", methods=['POST'])
