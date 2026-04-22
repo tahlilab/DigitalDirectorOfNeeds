@@ -246,7 +246,39 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
             r'who.*can.*help.*me',
             r'where.*to.*go',
             r'need.*care.*provider',
-            r'looking.*for.*help'
+            r'looking.*for.*help',
+            # Care facility / nursing home mentions (without "find")
+            r'care.*facility',
+            r'nursing.*home',
+            r'assisted.*living',
+            r'home.*care',
+            r'home.*health',
+            r'adult.*day.*care',
+            r'respite.*care',
+            r'long.*term.*care.*facility',
+            r'rehab.*facility',
+            r'skilled.*nursing',
+            # Need-based patterns
+            r'need.*facility',
+            r'need.*nursing',
+            r'need.*care',
+            r'need.*home.*care',
+            r'need.*assisted',
+            r'looking.*facility',
+            r'looking.*nursing',
+            r'looking.*assisted',
+            # Help with care
+            r'help.*finding.*care',
+            r'help.*finding.*provider',
+            r'help.*find.*care',
+            r'help.*find.*provider',
+            r'help.*with.*care',
+            r'where.*do.*i.*go',
+            r'how.*do.*i.*find',
+            # Helper Bees specific
+            r'helper.*bees',
+            r'referral',
+            r'provider.*network'
         ],
         'AGENT_REQUEST': [
             # Core patterns
@@ -430,7 +462,7 @@ def can_self_service(intent: str, confidence: float, relationship: str) -> bool:
         return False
     
     # Self-serviceable intents
-    self_serve_intents = ['CLAIM_STATUS', 'PAYMENT', 'COVERAGE_INQUIRY', 'RATE_INCREASE']
+    self_serve_intents = ['CLAIM_STATUS', 'PAYMENT', 'COVERAGE_INQUIRY', 'RATE_INCREASE', 'PROVIDER_REFERRAL']
     
     if intent not in self_serve_intents:
         return False
