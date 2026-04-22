@@ -74,6 +74,7 @@ def voice_greeting():
         language='en-US',
         num_digits=1,
         enhanced=True,
+        speech_model='phone_call',
         profanity_filter=False
     )
     
@@ -104,6 +105,7 @@ def continue_call():
         language='en-US',
         num_digits=1,
         enhanced=True,
+        speech_model='phone_call',
         profanity_filter=False
     )
     
@@ -153,10 +155,23 @@ def process_intent():
     print(f"🎤 Customer said: '{utterance}'")
     
     if not utterance:
-        # No speech detected, try again
+        # No speech detected, quick re-prompt (don't replay full greeting)
         resp = VoiceResponse()
-        resp.say("I didn't catch that. Could you please repeat?", voice='Polly.Salli-Neural')
-        resp.redirect('/voice')
+        gather = resp.gather(
+            input='speech dtmf',
+            action='/process-intent',
+            timeout=4,
+            speech_timeout='3',
+            language='en-US',
+            num_digits=1,
+            enhanced=True,
+            speech_model='phone_call'
+        )
+        gather.say(
+            "Sorry, I didn't catch that. What can I help you with?",
+            voice='Polly.Salli-Neural'
+        )
+        resp.redirect('/no-input-handler')
         return str(resp)
     
     # Call GPT-4o intent classifier
@@ -516,7 +531,9 @@ def self_service():
         method='POST',
         timeout=5,
         num_digits=1,
-        speech_timeout='3'
+        speech_timeout='3',
+        enhanced=True,
+        speech_model='phone_call'
     )
     
     gather.say(
@@ -535,22 +552,37 @@ def anything_else():
     """
     Handle anything else prompt - natural speech recognition
     """
-    response = request.values.get('Digits', request.values.get('SpeechResult', '')).lower()
+    response = request.values.get('SpeechResult', '')
+    digits = request.values.get('Digits', '')
+    from_number = request.values.get('From', '')
     
     resp = VoiceResponse()
     
-    # Check for continuation or restart
-    if any(word in response for word in ['yes', 'yeah', 'yep', 'sure', 'another', 'more', 'continue', 'start over', 'restart', 'beginning', 'fresh']):
-        # Continue with another question - use simplified prompt
-        resp.redirect('/continue-call')
+    response_lower = response.lower().strip()
+    
+    # DTMF: 3 = restart
+    if digits == '3':
+        resp.say("Sure thing, let's start fresh!", voice='Polly.Salli-Neural')
+        resp.redirect('/voice')
+        return str(resp)
+    
     # Check for explicit no or goodbye
-    elif any(word in response for word in ['no', 'nope', 'done', 'good', 'bye', 'hang up', "that's it", "that's all"]) or not response:
-        # End call
+    if any(word in response_lower for word in ['no', 'nope', 'done', 'good', 'bye', 'hang up', "that's it", "that's all", "i'm good", "all set"]) or (not response and not digits):
         resp.redirect('/goodbye')
-    else:
-        # If they said something else, ask for clarification
-        resp.say("I didn't catch that. Did you need help with something else?", voice='Polly.Salli-Neural')
+        return str(resp)
+    
+    # Check for yes/continue
+    if any(word in response_lower for word in ['yes', 'yeah', 'yep', 'sure']):
         resp.redirect('/continue-call')
+        return str(resp)
+    
+    # They said something specific - treat it as a new request, send to intent processing
+    if response:
+        resp.redirect(f'/process-intent?SpeechResult={response}&From={from_number}')
+        return str(resp)
+    
+    # Fallback
+    resp.redirect('/goodbye')
     
     return str(resp)
 
@@ -773,7 +805,9 @@ def payment_methods():
         method='POST',
         timeout=5,
         num_digits=1,
-        speech_timeout='3'
+        speech_timeout='3',
+        enhanced=True,
+        speech_model='phone_call'
     )
     
     gather.say(
@@ -889,7 +923,9 @@ def provider_confirm():
         method='POST',
         timeout=5,
         num_digits=1,
-        speech_timeout='3'
+        speech_timeout='3',
+        enhanced=True,
+        speech_model='phone_call'
     )
     
     gather.say(
