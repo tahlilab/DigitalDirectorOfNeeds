@@ -480,7 +480,7 @@ def self_service():
                     needs_info = result.get('needsProviderInfo', False)
                     if needs_info:
                         resp.pause(length=1)
-                        from_number = request.values.get('From', phone)
+                        from_number = request.values.get('From', phone).strip()
                         resp.redirect(f'/provider-collect-name?phone={from_number}')
                         return str(resp)
                 
@@ -794,7 +794,7 @@ def provider_collect_name():
     Step 1: Ask for provider name
     """
     resp = VoiceResponse()
-    phone = request.args.get('phone', request.values.get('From', ''))
+    phone = request.args.get('phone', request.values.get('From', '')).strip()
     call_sid = request.values.get('CallSid', '')
     
     gather = resp.gather(
@@ -823,7 +823,7 @@ def provider_collect_zip():
     Step 2: Ask for zip code, then confirm and submit
     """
     resp = VoiceResponse()
-    phone = request.args.get('phone', request.values.get('From', ''))
+    phone = request.args.get('phone', request.values.get('From', '')).strip()
     call_sid = request.values.get('CallSid', '')
     provider_name = request.values.get('SpeechResult', '')
     
@@ -861,7 +861,7 @@ def provider_confirm():
     Confirm provider name and zip, then submit to Helper Bees
     """
     resp = VoiceResponse()
-    phone = request.args.get('phone', request.values.get('From', ''))
+    phone = request.args.get('phone', request.values.get('From', '')).strip()
     call_sid = request.values.get('CallSid', '')
     zip_code = request.values.get('Digits', request.values.get('SpeechResult', ''))
     
@@ -875,9 +875,8 @@ def provider_confirm():
     
     resp.say(
         f"Perfect! I've got {provider_name} in zip code {zip_code}. "
-        "I'm sending that over to The Helper Bees now. "
-        "They'll reach out within 1 to 2 business days with options and next steps. "
-        "They're really good at matching you with the right provider.",
+        "I'm sending that over now. "
+        "You should hear back within 1 to 2 business days with options and next steps.",
         voice='Polly.Salli-Neural'
     )
     

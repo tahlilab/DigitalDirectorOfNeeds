@@ -267,15 +267,12 @@ def handle_provider_referral(phone: str, params: Dict) -> Dict[str, Any]:
     # Create Salesforce Health Cloud note (would happen via API in production)
     # This would trigger: notification to THB, daily SFTP feed, email outreach
     
-    message = "Got it! So we partner with The Helper Bees - they're really helpful at finding providers. "
-    message += "I just need a couple things to get this going. "
+    message = "Got it! I just need a couple things to get this going. "
     
     return {
         'responseMessage': message,
         'success': True,
         'needsProviderInfo': True,
-        'partnerService': 'The Helper Bees',
-        'slaMessage': 'You should hear back within 1-2 business days'
     }
 
 
