@@ -12,7 +12,7 @@
 
 1. **Twilio Voice Webhook** (`twilio_webhook.py`)
    - Flask-based web server handling incoming phone calls
-   - Routes: `/voice`, `/continue-call`, `/process-intent`, `/process-clarification`, `/self-service`, `/transfer-agent`, `/process-transfer-choice`, `/payment-options`, `/process-payment-choice`, `/payment-methods`, `/provider-collect-name`, `/provider-collect-zip`, `/provider-confirm`, `/anything-else`, `/no-input-handler`, `/goodbye`, `/status`
+   - Routes: `/voice`, `/continue-call`, `/process-intent`, `/process-clarification`, `/self-service`, `/transfer-agent`, `/process-transfer-choice`, `/payment-options`, `/process-payment-choice`, `/payment-methods`, `/provider-collect-name`, `/provider-collect-zip`, `/provider-confirm`, `/provider-collect-email`, `/provider-email-confirm`, `/provider-email-verified`, `/anything-else`, `/no-input-handler`, `/goodbye`, `/status`
    - Integrates with Lambda functions for AI classification and self-service
    - Deployed on Render.com for production testing
 
@@ -123,14 +123,17 @@
 - **Retry logic:** 2 attempts with clearer prompts before agent transfer
 
 **Dual-Path Flow:**
-- **"Find a provider"** → Helper Bees partnership intro → collect name + zip → Helper Bees confirmation
+- **"Find a provider"** → Helper Bees partnership intro → collect email → Helper Bees emails provider options
 - **"Add a provider"** → Simple collection → collect name + zip → Generic confirmation
 
-**Find Provider Flow:**
+**Find Provider Flow (Helper Bees):**
 1. Customer: "I need to find a nursing home"
-2. System: "We partner with The Helper Bees - they're really helpful at finding providers. I just need a couple things..."
-3. System collects provider name + zip code
-4. System: "I'm sending that over to The Helper Bees now. You should hear back within 1 to 2 business days with provider options. They're really good at matching you with the right care."
+2. System: "We partner with The Helper Bees - they're really helpful at finding providers. I just need to grab your email so they can send over some options."
+3. System: "What's the best email address to send those options to?"
+4. Customer: "john dot smith at gmail dot com"
+5. System: "I heard john dot smith at gmail dot com. Is that right?"
+6. Customer: "Yes"
+7. System: "Perfect! I've sent that over to The Helper Bees. They'll email you within 1 to 2 business days with provider options. They're really good at matching you with the right care."
 
 **Add Provider Flow:**
 1. Customer: "I want to add a provider"
@@ -261,13 +264,13 @@ Customer Experience: "Customer shows frustration - use empathetic language"
    - Sentiment: neutral
    - Can self-serve: true
 3. System: "Let me look that up for you." [2 sec pause]
-4. System: "We partner with The Helper Bees - they're really helpful at finding providers. I just need a couple things to get this going."
-5. System: "What's the name of the provider or type of care you're looking for?"
-6. Customer: "Sunrise Senior Living"
-7. System: "Got it. And what's the zip code where you're looking for care?"
-8. Customer: "02101"
-9. System: "I'm sending that over to The Helper Bees now. You should hear back within 1 to 2 business days with provider options. They're really good at matching you with the right care."
-10. System: "Is there anything else I can help you with?"
+4. System: "We partner with The Helper Bees - they're really helpful at finding providers. I just need to grab your email so they can send over some options."
+5. System: "What's the best email address to send those options to?"
+6. Customer: "john dot smith at gmail dot com"
+7. System: "I heard john dot smith at gmail dot com. Is that right?"
+8. Customer: "Yes"
+9. System: "Perfect! I've sent that over to The Helper Bees. They'll email you within 1 to 2 business days with provider options. They're really good at matching you with the right care."
+10. System: "Anything else?"
 ```
 
 ### Example 5: Low Confidence with Clarification (Leading to Provider)

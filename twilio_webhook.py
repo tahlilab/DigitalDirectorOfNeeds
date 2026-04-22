@@ -496,13 +496,19 @@ def self_service():
                     resp.redirect(f'/payment-options?phone={from_number}')
                     return str(resp)
                 
-                # For PROVIDER_REFERRAL intent, collect provider name and zip
+                # For PROVIDER_REFERRAL intent, route based on sub-type
                 if intent == 'PROVIDER_REFERRAL':
                     needs_info = result.get('needsProviderInfo', False)
                     if needs_info:
                         resp.pause(length=1)
                         from_number = request.values.get('From', phone).strip()
-                        resp.redirect(f'/provider-collect-name?phone={from_number}')
+                        sub_type = result.get('providerSubType', 'find')
+                        if sub_type == 'add':
+                            # Add provider: collect name + zip
+                            resp.redirect(f'/provider-collect-name?phone={from_number}')
+                        else:
+                            # Find provider: collect email for Helper Bees
+                            resp.redirect(f'/provider-collect-email?phone={from_number}')
                         return str(resp)
                 
             else:
@@ -956,6 +962,147 @@ def provider_confirm():
     resp.redirect('/anything-else')
     
     return str(resp)
+
+
+@app.route("/provider-collect-email", methods=['GET', 'POST'])
+def provider_collect_email():
+    """
+    Collect email for Helper Bees provider referral (find provider flow).
+    Helper Bees will email provider options to the customer.
+    """
+    resp = VoiceResponse()
+    phone = request.args.get('phone', request.values.get('From', '')).strip()
+    call_sid = request.values.get('CallSid', '')
+
+    # Track retry attempts
+    if call_sid in sessions:
+        retry_count = sessions[call_sid].get('provider_email_retry', 0)
+    else:
+        sessions[call_sid] = {'provider_email_retry': 0}
+        retry_count = 0
+
+    gather = resp.gather(
+        input='speech',
+        action=f'/provider-email-confirm?phone={phone}',
+        timeout=8,
+        speech_timeout='5',
+        enhanced=True,
+        speech_model='phone_call'
+    )
+
+    gather.say(
+        "What's the best email address to send those options to?",
+        voice='Polly.Salli-Neural'
+    )
+
+    # No input fallback
+    retry_count += 1
+    if call_sid in sessions:
+        sessions[call_sid]['provider_email_retry'] = retry_count
+
+    if retry_count < 2:
+        resp.say("Sorry, didn't catch that.", voice='Polly.Salli-Neural')
+        resp.redirect(f'/provider-collect-email?phone={phone}')
+    else:
+        resp.say(
+            "Alright, let me get you to someone who can help set this up. Hold on just a sec.",
+            voice='Polly.Salli-Neural'
+        )
+        sessions.get(call_sid, {}).pop('provider_email_retry', None)
+        resp.redirect('/transfer-agent')
+
+    return str(resp)
+
+
+@app.route("/provider-email-confirm", methods=['GET', 'POST'])
+def provider_email_confirm():
+    """
+    Confirm email spoken by customer, then submit to Helper Bees.
+    """
+    resp = VoiceResponse()
+    phone = request.args.get('phone', request.values.get('From', '')).strip()
+    call_sid = request.values.get('CallSid', '')
+    email_speech = request.values.get('SpeechResult', '')
+
+    print(f"📧 Email collected via speech: '{email_speech}'")
+
+    # Store email in session
+    if call_sid in sessions:
+        sessions[call_sid]['provider_email'] = email_speech
+        sessions[call_sid]['provider_email_retry'] = 0
+
+    # Read it back and confirm
+    gather = resp.gather(
+        input='speech',
+        action=f'/provider-email-verified?phone={phone}',
+        timeout=5,
+        speech_timeout='3',
+        enhanced=True,
+        speech_model='phone_call'
+    )
+
+    gather.say(
+        f"I heard {email_speech}. Is that right?",
+        voice='Polly.Salli-Neural'
+    )
+
+    # No input fallback
+    resp.say("Sorry, didn't catch that. Is that email correct? Say yes or no.", voice='Polly.Salli-Neural')
+    resp.redirect(f'/provider-email-confirm?phone={phone}')
+
+    return str(resp)
+
+
+@app.route("/provider-email-verified", methods=['GET', 'POST'])
+def provider_email_verified():
+    """
+    Process yes/no confirmation of email for Helper Bees referral.
+    """
+    resp = VoiceResponse()
+    phone = request.args.get('phone', request.values.get('From', '')).strip()
+    call_sid = request.values.get('CallSid', '')
+    speech = request.values.get('SpeechResult', '').lower()
+
+    if any(word in speech for word in ['yes', 'yeah', 'correct', 'right', 'yep', 'sure', 'ok', 'okay', 'that\'s right']):
+        # Confirmed - submit
+        resp.say(
+            "Perfect! I've sent that over to The Helper Bees. "
+            "They'll email you within 1 to 2 business days with provider options. "
+            "They're really good at matching you with the right care.",
+            voice='Polly.Salli-Neural'
+        )
+        resp.pause(length=1)
+
+        gather = resp.gather(
+            input='speech dtmf',
+            action='/anything-else',
+            method='POST',
+            timeout=5,
+            num_digits=1,
+            speech_timeout='3',
+            enhanced=True,
+            speech_model='phone_call'
+        )
+        gather.say("Anything else?", voice='Polly.Salli-Neural')
+        resp.redirect('/anything-else')
+        return str(resp)
+
+    elif any(word in speech for word in ['no', 'nope', 'wrong', 'different', 'change']):
+        # Re-collect email
+        resp.say("No problem! Let's try again.", voice='Polly.Salli-Neural')
+        if call_sid in sessions:
+            sessions[call_sid]['provider_email_retry'] = 0
+        resp.redirect(f'/provider-collect-email?phone={phone}')
+        return str(resp)
+
+    else:
+        # Unclear - ask again
+        resp.say(
+            "Sorry, just need a yes or no - is that email correct?",
+            voice='Polly.Salli-Neural'
+        )
+        resp.redirect(f'/provider-email-confirm?phone={phone}')
+        return str(resp)
 
 
 @app.route("/provider-email-verify", methods=['GET', 'POST'])

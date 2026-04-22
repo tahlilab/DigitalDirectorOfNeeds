@@ -267,20 +267,21 @@ def handle_provider_referral(phone: str, params: Dict) -> Dict[str, Any]:
     provider_sub_type = params.get('providerSubType', 'find')
     
     if provider_sub_type == 'add':
-        # Adding a specific provider - no Helper Bees needed
+        # Adding a specific provider - collect name + zip
         message = "Got it! I just need a couple things to get this going. "
     else:
-        # Finding a provider - Helper Bees partnership
+        # Finding a provider - Helper Bees will email options
         message = (
             "Got it! So we partner with The Helper Bees - "
             "they're really helpful at finding providers. "
-            "I just need a couple things to get this going. "
+            "I just need to grab your email so they can send over some options. "
         )
     
     return {
         'responseMessage': message,
         'success': True,
         'needsProviderInfo': True,
+        'providerSubType': provider_sub_type,
     }
 
 
