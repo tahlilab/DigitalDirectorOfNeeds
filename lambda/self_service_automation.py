@@ -256,35 +256,24 @@ def handle_rate_increase(phone: str, params: Dict) -> Dict[str, Any]:
 
 def handle_provider_referral(phone: str, params: Dict) -> Dict[str, Any]:
     """
-    Handle provider referral requests (pre-claim)
-    Following flow: Collect info → Create Salesforce note → Send to Helper Bees → Email verification
+    Handle provider referral / add provider requests (pre-claim)
+    Following flow: Collect provider name + zip → Create Salesforce note → Send to Helper Bees
     """
-    # Get customer email for verification
     customer_data = mock_customer_lookup(phone)
     
     if not customer_data:
         return error_response("No customer information found")
     
-    email = customer_data.get('email', '')
-    
     # Create Salesforce Health Cloud note (would happen via API in production)
     # This would trigger: notification to THB, daily SFTP feed, email outreach
     
     message = "Got it! So we partner with The Helper Bees - they're really helpful at finding providers. "
-    message += "I'm gonna put in a request for them to reach out. "
-    
-    if email:
-        # Email verification step from flow
-        message += f"Quick thing - is {email} still the best email for you? "
-        message += "They'll send you some info and options there. "
-        message += "Usually takes about 1-2 business days to hear back. "
-    else:
-        message += "I'll need an email address so they can send you the provider info. What's your email?"
+    message += "I just need a couple things to get this going. "
     
     return {
         'responseMessage': message,
         'success': True,
-        'needsEmailVerification': True,
+        'needsProviderInfo': True,
         'partnerService': 'The Helper Bees',
         'slaMessage': 'You should hear back within 1-2 business days'
     }

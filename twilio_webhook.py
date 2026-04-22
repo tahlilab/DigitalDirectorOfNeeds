@@ -77,7 +77,7 @@ def voice_greeting():
     
     gather.say(
         "Hey, thanks for calling John Hancock. What can I help you with today?",
-        voice='Google.en-US-Neural2-F'
+        voice='Polly.Salli-Neural'
     )
     
     # If no input, offer callback option instead of infinite loop
@@ -105,7 +105,7 @@ def continue_call():
     
     gather.say(
         "What else can I do for you?",
-        voice='Google.en-US-Neural2-F'
+        voice='Polly.Salli-Neural'
     )
     
     # If no input, go to no-input handler
@@ -151,7 +151,7 @@ def process_intent():
     if not utterance:
         # No speech detected, try again
         resp = VoiceResponse()
-        resp.say("I didn't catch that. Could you please repeat?", voice='Google.en-US-Neural2-F')
+        resp.say("I didn't catch that. Could you please repeat?", voice='Polly.Salli-Neural')
         resp.redirect('/voice')
         return str(resp)
     
@@ -202,7 +202,7 @@ def process_intent():
         resp.say(
             "I want to make sure I help you correctly. Are you calling about a claim, "
             "a payment, coverage, finding a provider, or something else?",
-            voice='Google.en-US-Neural2-F'
+            voice='Polly.Salli-Neural'
         )
         
         gather = resp.gather(
@@ -262,7 +262,7 @@ def process_clarification():
             resp.say(
                 "Sorry, didn't catch that. Are you calling about a claim, payment, coverage, "
                 "finding a provider, a rate increase, or do you need to speak with someone?",
-                voice='Google.en-US-Neural2-F'
+                voice='Polly.Salli-Neural'
             )
             gather = resp.gather(
                 input='speech',
@@ -276,7 +276,7 @@ def process_clarification():
             # After 2 retries - transfer to agent
             resp.say(
                 "Alright, let me get you to someone who can help. Hold on just a sec.",
-                voice='Google.en-US-Neural2-F'
+                voice='Polly.Salli-Neural'
             )
             sessions[call_sid]['clarification_retry'] = 0
             resp.redirect('/transfer-agent')
@@ -323,7 +323,7 @@ def process_clarification():
             # After 2 attempts, transfer to agent
             resp.say(
                 "Let me connect you with someone who can help you better.",
-                voice='Google.en-US-Neural2-F'
+                voice='Polly.Salli-Neural'
             )
             sessions[call_sid]['clarification_retry'] = 0
             resp.redirect('/transfer-agent')
@@ -334,7 +334,7 @@ def process_clarification():
                 "Let me try to help. Say 'claim' for claim status, 'payment' for billing, "
                 "'coverage' for benefits, 'provider' to find care, 'rate' for rate questions, "
                 "or 'agent' to speak with someone.",
-                voice='Google.en-US-Neural2-F'
+                voice='Polly.Salli-Neural'
             )
             gather = resp.gather(
                 input='speech',
@@ -382,7 +382,7 @@ def self_service():
         print("❌ Unknown intent, transferring to agent")
         resp.say(
             "I'm having trouble understanding your request. Let me connect you with an agent.",
-            voice='Google.en-US-Neural2-F'
+            voice='Polly.Salli-Neural'
         )
         resp.redirect('/transfer-agent')
         return str(resp)
@@ -397,14 +397,14 @@ def self_service():
         if sentiment in ['frustrated', 'angry']:
             resp.say(
                 "I understand your concern, and I apologize for any frustration.",
-                voice='Google.en-US-Neural2-F'
+                voice='Polly.Salli-Neural'
             )
             resp.pause(length=1)
     
     # Acknowledge
     resp.say(
         "Let me look that up for you.",
-        voice='Google.en-US-Neural2-F'
+        voice='Polly.Salli-Neural'
     )
     
     resp.pause(length=2)  # Simulate lookup
@@ -431,7 +431,7 @@ def self_service():
                 chunks = [message[i:i+500] for i in range(0, len(message), 500)]
                 
                 for chunk in chunks:
-                    resp.say(chunk, voice='Google.en-US-Neural2-F')
+                    resp.say(chunk, voice='Polly.Salli-Neural')
                 
                 # Add educational content if available from AI recommendations
                 educational_content = recommendations.get('educationalContent', [])
@@ -439,7 +439,7 @@ def self_service():
                     resp.pause(length=1)
                     resp.say(
                         f"Here's something helpful to know: {educational_content[0]}",
-                        voice='Google.en-US-Neural2-F'
+                        voice='Polly.Salli-Neural'
                     )
                 
                 # Offer secondary action if available
@@ -454,7 +454,7 @@ def self_service():
                         resp.pause(length=1)
                         resp.say(
                             proactive_actions[0],
-                            voice='Google.en-US-Neural2-F'
+                            voice='Polly.Salli-Neural'
                         )
                 
                 # For PAYMENT intent, offer interactive payment options
@@ -465,19 +465,19 @@ def self_service():
                     resp.redirect(f'/payment-options?phone={from_number}')
                     return str(resp)
                 
-                # For PROVIDER_REFERRAL intent, handle email verification flow
+                # For PROVIDER_REFERRAL intent, collect provider name and zip
                 if intent == 'PROVIDER_REFERRAL':
-                    needs_verification = result.get('needsEmailVerification', False)
-                    if needs_verification:
+                    needs_info = result.get('needsProviderInfo', False)
+                    if needs_info:
                         resp.pause(length=1)
                         from_number = request.values.get('From', phone)
-                        resp.redirect(f'/provider-email-verify?phone={from_number}')
+                        resp.redirect(f'/provider-collect-name?phone={from_number}')
                         return str(resp)
                 
             else:
                 resp.say(
                     "I'm having trouble looking that up. Let me connect you with an agent.",
-                    voice='Google.en-US-Neural2-F'
+                    voice='Polly.Salli-Neural'
                 )
                 resp.redirect('/transfer-agent')
                 return str(resp)
@@ -485,7 +485,7 @@ def self_service():
             print(f"❌ Self-service error: {e}")
             resp.say(
                 "I apologize, but I encountered an error. Let me connect you with an agent.",
-                voice='Google.en-US-Neural2-F'
+                voice='Polly.Salli-Neural'
             )
             resp.redirect('/transfer-agent')
             return str(resp)
@@ -494,7 +494,7 @@ def self_service():
         resp.say(
             "Your claim number 12345 was approved on April 10th for 2,800 dollars. "
             "Your reimbursement check was mailed on April 18th.",
-            voice='Google.en-US-Neural2-F'
+            voice='Polly.Salli-Neural'
         )
     
     # Ask if anything else
@@ -511,7 +511,7 @@ def self_service():
     
     gather.say(
         "Anything else?",
-        voice='Google.en-US-Neural2-F'
+        voice='Polly.Salli-Neural'
     )
     
     # Default to goodbye if no response
@@ -539,7 +539,7 @@ def anything_else():
         resp.redirect('/goodbye')
     else:
         # If they said something else, ask for clarification
-        resp.say("I didn't catch that. Did you need help with something else?", voice='Google.en-US-Neural2-F')
+        resp.say("I didn't catch that. Did you need help with something else?", voice='Polly.Salli-Neural')
         resp.redirect('/continue-call')
     
     return str(resp)
@@ -567,7 +567,7 @@ def transfer_agent():
     gather.say(
         "Let me get you to someone. Wait time's about 3 to 5 minutes right now. "
         "Wanna hold, or should we just call you back in an hour?",
-        voice='Google.en-US-Neural2-F'
+        voice='Polly.Salli-Neural'
     )
     
     # Default to hold if no response
@@ -593,7 +593,7 @@ def process_transfer_choice():
         resp.say(
             f"Perfect! We'll hit you back at {format_phone_number(from_number)} within the hour. "
             "You'll get a text too. Talk soon!",
-            voice='Google.en-US-Neural2-F'
+            voice='Polly.Salli-Neural'
         )
         resp.hangup()
         
@@ -609,7 +609,7 @@ def process_transfer_choice():
         # Hold option (default or explicitly stated) - provide engaging hold experience
         resp.say(
             "Alright, putting you through. While you're waiting, remember you can handle stuff online anytime.",
-            voice='Google.en-US-Neural2-F'
+            voice='Polly.Salli-Neural'
         )
         
         # In production, use resp.dial() to transfer to real agent line
@@ -620,13 +620,13 @@ def process_transfer_choice():
         resp.pause(length=5)
         resp.say(
             "Almost there. Someone'll grab you in just a sec.",
-            voice='Google.en-US-Neural2-F'
+            voice='Polly.Salli-Neural'
         )
         
         resp.pause(length=5)
         resp.say(
             "Thanks for waiting. In the real deal, you'd be chatting with someone now.",
-            voice='Google.en-US-Neural2-F'
+            voice='Polly.Salli-Neural'
         )
         
         resp.redirect('/goodbye')
@@ -651,13 +651,13 @@ def no_input_handler():
     
     gather.say(
         "Didn't catch that. What's up?",
-        voice='Google.en-US-Neural2-F'
+        voice='Polly.Salli-Neural'
     )
     
     # After second no-input, offer transfer
     resp.say(
         "Having trouble hearing you. Let me get you to a real person.",
-        voice='Google.en-US-Neural2-F'
+        voice='Polly.Salli-Neural'
     )
     resp.redirect('/transfer-agent')
     
@@ -682,7 +682,7 @@ def payment_options():
         
         gather.say(
             "Wanna pay now, or you want to hear your options first?",
-            voice='Google.en-US-Neural2-F'
+            voice='Polly.Salli-Neural'
         )
         
         # Default to payment methods if no response
@@ -692,7 +692,7 @@ def payment_options():
     except Exception as e:
         print(f"❌ Payment options error: {e}")
         resp = VoiceResponse()
-        resp.say("Having trouble with that. Let me get you to someone who can help.", voice='Google.en-US-Neural2-F')
+        resp.say("Having trouble with that. Let me get you to someone who can help.", voice='Polly.Salli-Neural')
         resp.redirect('/transfer-agent')
         return str(resp)
 
@@ -712,7 +712,7 @@ def process_payment_choice():
         resp.say(
             "Cool, I'll get you to the payment system. "
             "Have your policy number handy, plus a credit card or bank info.",
-            voice='Google.en-US-Neural2-F'
+            voice='Polly.Salli-Neural'
         )
         
         # In production, dial payment IVR: resp.dial('+18005551234')
@@ -720,7 +720,7 @@ def process_payment_choice():
         resp.pause(length=3)
         resp.say(
             "In a production system, you'd be connected to the payment system now.",
-            voice='Google.en-US-Neural2-F'
+            voice='Polly.Salli-Neural'
         )
         resp.redirect('/goodbye')
         
@@ -751,7 +751,7 @@ def payment_methods():
         "Mail a check to P O Box 12345, Boston Mass, 02101. "
         "Call the payment line at 1-800-555-1234. "
         "Or just hop online to johnhancockltc.com.",
-        voice='Google.en-US-Neural2-F'
+        voice='Polly.Salli-Neural'
     )
     
     resp.pause(length=1)
@@ -768,10 +768,126 @@ def payment_methods():
     
     gather.say(
         "Anything else?",
-        voice='Google.en-US-Neural2-F'
+        voice='Polly.Salli-Neural'
     )
     
     # Fallback to anything-else endpoint (will redirect to goodbye if no input)
+    resp.redirect('/anything-else')
+    
+    return str(resp)
+
+
+@app.route("/provider-collect-name", methods=['GET', 'POST'])
+def provider_collect_name():
+    """
+    Collect provider name for provider referral / add provider
+    Step 1: Ask for provider name
+    """
+    resp = VoiceResponse()
+    phone = request.args.get('phone', request.values.get('From', ''))
+    call_sid = request.values.get('CallSid', '')
+    
+    gather = resp.gather(
+        input='speech',
+        action=f'/provider-collect-zip?phone={phone}',
+        timeout=5,
+        speech_timeout='auto'
+    )
+    
+    gather.say(
+        "What's the name of the provider you're looking for?",
+        voice='Polly.Salli-Neural'
+    )
+    
+    # No input fallback
+    resp.say("Didn't catch that.", voice='Polly.Salli-Neural')
+    resp.redirect(f'/provider-collect-name?phone={phone}')
+    
+    return str(resp)
+
+
+@app.route("/provider-collect-zip", methods=['GET', 'POST'])
+def provider_collect_zip():
+    """
+    Collect zip code for provider referral / add provider
+    Step 2: Ask for zip code, then confirm and submit
+    """
+    resp = VoiceResponse()
+    phone = request.args.get('phone', request.values.get('From', ''))
+    call_sid = request.values.get('CallSid', '')
+    provider_name = request.values.get('SpeechResult', '')
+    
+    print(f"🏥 Provider name collected: '{provider_name}'")
+    
+    # Store provider name in session
+    if call_sid in sessions:
+        sessions[call_sid]['provider_name'] = provider_name
+    else:
+        sessions[call_sid] = {'provider_name': provider_name}
+    
+    gather = resp.gather(
+        input='speech dtmf',
+        action=f'/provider-confirm?phone={phone}',
+        timeout=5,
+        speech_timeout='auto',
+        num_digits=5
+    )
+    
+    gather.say(
+        "Got it. And what's the zip code?",
+        voice='Polly.Salli-Neural'
+    )
+    
+    # No input fallback
+    resp.say("Didn't catch that.", voice='Polly.Salli-Neural')
+    resp.redirect(f'/provider-collect-zip?phone={phone}')
+    
+    return str(resp)
+
+
+@app.route("/provider-confirm", methods=['GET', 'POST'])
+def provider_confirm():
+    """
+    Confirm provider name and zip, then submit to Helper Bees
+    """
+    resp = VoiceResponse()
+    phone = request.args.get('phone', request.values.get('From', ''))
+    call_sid = request.values.get('CallSid', '')
+    zip_code = request.values.get('Digits', request.values.get('SpeechResult', ''))
+    
+    # Get provider name from session
+    provider_name = ''
+    if call_sid in sessions:
+        provider_name = sessions[call_sid].get('provider_name', '')
+        sessions[call_sid]['provider_zip'] = zip_code
+    
+    print(f"📍 Provider zip collected: '{zip_code}' for provider: '{provider_name}'")
+    
+    resp.say(
+        f"Perfect! I've got {provider_name} in zip code {zip_code}. "
+        "I'm sending that over to The Helper Bees now. "
+        "They'll reach out within 1 to 2 business days with options and next steps. "
+        "They're really good at matching you with the right provider.",
+        voice='Polly.Salli-Neural'
+    )
+    
+    resp.pause(length=1)
+    
+    # Ask if anything else
+    gather = resp.gather(
+        input='speech dtmf',
+        action='/anything-else',
+        method='POST',
+        timeout=5,
+        num_digits=1,
+        speech_timeout='auto'
+    )
+    
+    gather.say(
+        "Anything else?",
+        voice='Polly.Salli-Neural'
+    )
+    
     resp.redirect('/anything-else')
     
     return str(resp)
@@ -804,7 +920,7 @@ def provider_email_verify():
             resp.say(
                 "Perfect! I've put in the request. The Helper Bees will email you within 1-2 business days with provider options. "
                 "They're really good at finding exactly what you need. Anything else I can help with?",
-                voice='Google.en-US-Neural2-F'
+                voice='Polly.Salli-Neural'
             )
             resp.redirect('/anything-else')
             return str(resp)
@@ -813,7 +929,7 @@ def provider_email_verify():
         elif any(word in speech for word in ['no', 'nope', 'different', 'change', 'update', 'wrong']):
             resp.say(
                 "No problem! What's the best email address for you?",
-                voice='Google.en-US-Neural2-F'
+                voice='Polly.Salli-Neural'
             )
             
             # Gather email (would need email collection flow in production)
@@ -834,7 +950,7 @@ def provider_email_verify():
         # First retry - ask more clearly
         resp.say(
             "Sorry, didn't catch that. Just need to know - is that email address still good? Say yes or no.",
-            voice='Google.en-US-Neural2-F'
+            voice='Polly.Salli-Neural'
         )
         resp.redirect('/provider-email-verify?phone=' + phone)
         return str(resp)
@@ -844,7 +960,7 @@ def provider_email_verify():
         resp.say(
             "Hmm, having trouble hearing you. Let me make this easier. "
             "Say 'yes' if the email is good, or say 'no' if you need to update it.",
-            voice='Google.en-US-Neural2-F'
+            voice='Polly.Salli-Neural'
         )
         resp.redirect('/provider-email-verify?phone=' + phone)
         return str(resp)
@@ -853,7 +969,7 @@ def provider_email_verify():
         # After 2 retries - transfer to agent
         resp.say(
             "Alright, let me get you to someone who can help set this up. Hold on just a sec.",
-            voice='Google.en-US-Neural2-F'
+            voice='Polly.Salli-Neural'
         )
         # Reset retry counter
         sessions[call_sid]['provider_email_retry'] = 0
@@ -875,7 +991,7 @@ def provider_email_collected():
         f"Got it, I've updated your email to {speech}. "
         "The Helper Bees will reach out there within 1-2 business days with provider options. "
         "Is there anything else I can help you with?",
-        voice='Google.en-US-Neural2-F'
+        voice='Polly.Salli-Neural'
     )
     
     resp.redirect('/anything-else')
@@ -895,7 +1011,7 @@ def goodbye():
     resp = VoiceResponse()
     resp.say(
         "Thanks for calling! Have a good one!",
-        voice='Google.en-US-Neural2-F'
+        voice='Polly.Salli-Neural'
     )
     resp.hangup()
     
