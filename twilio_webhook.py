@@ -413,7 +413,7 @@ def self_service():
     
     # Acknowledge
     resp.say(
-        "Let me look that up for you.",
+        "Give me just a sec to pull that up.",
         voice='Polly.Salli-Neural'
     )
     

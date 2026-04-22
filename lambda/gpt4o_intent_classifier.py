@@ -64,11 +64,13 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
     Rule-based classifier for local testing
     Simulates GPT-4o responses
     """
-    utterance_lower = utterance.lower()
+    utterance_lower = utterance.lower().strip().rstrip('.!?,')
     
     # Intent patterns
     intent_patterns = {
         'CLAIM_STATUS': [
+            # Single-word match (for clarification responses)
+            r'^(a |my |the )?claims?$',
             # Core patterns
             r'claim\s+status',
             r'check.*claim',
@@ -100,6 +102,10 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
             r'follow.*claim'
         ],
         'PAYMENT': [
+            # Single-word match (for clarification responses)
+            r'^(a |my |the )?payments?$',
+            r'^billing$',
+            r'^(my )?premium$',
             # Core patterns
             r'pay.*premium',
             r'make.*payment',
@@ -170,6 +176,9 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
             r'what.*am.*i.*covered'
         ],
         'RATE_INCREASE': [
+            # Single-word match (for clarification responses)
+            r'^(a |my |the )?rates?$',
+            r'^rate (increase|change|hike)$',
             # Core patterns
             r'rate.*increase',
             r'rate.*go.*up',
@@ -218,6 +227,8 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
             r'why.*bill.*more'
         ],
         'PROVIDER_REFERRAL': [
+            # Single-word match (for clarification responses)
+            r'^(a |my |the )?providers?$',
             # Core patterns
             r'find.*provider',
             r'need.*provider',
@@ -286,6 +297,9 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
             r'provider.*network'
         ],
         'AGENT_REQUEST': [
+            # Single-word match (for clarification responses)
+            r'^(an )?agent$',
+            r'^(a )?(real |live )?person$',
             # Core patterns
             r'speak.*agent',
             r'talk.*person',
