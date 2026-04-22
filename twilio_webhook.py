@@ -212,8 +212,10 @@ def process_intent():
         gather = resp.gather(
             input='speech',
             action='/process-clarification',
-            timeout=3,
-            speech_timeout='3'
+            timeout=5,
+            speech_timeout='3',
+            enhanced=True,
+            speech_model='phone_call'
         )
         
         return str(resp)
@@ -272,7 +274,9 @@ def process_clarification():
                 input='speech',
                 action='/process-clarification',
                 timeout=5,
-                speech_timeout='3'
+                speech_timeout='3',
+                enhanced=True,
+                speech_model='phone_call'
             )
             return str(resp)
         
@@ -344,7 +348,9 @@ def process_clarification():
                 input='speech',
                 action='/process-clarification',
                 timeout=5,
-                speech_timeout='3'
+                speech_timeout='3',
+                enhanced=True,
+                speech_model='phone_call'
             )
             return str(resp)
     
