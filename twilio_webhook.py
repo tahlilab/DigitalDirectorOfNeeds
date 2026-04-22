@@ -69,10 +69,12 @@ def voice_greeting():
     gather = resp.gather(
         input='speech dtmf',
         action='/process-intent',
-        timeout=3,
-        speech_timeout='auto',
+        timeout=4,
+        speech_timeout='3',
         language='en-US',
-        num_digits=1
+        num_digits=1,
+        enhanced=True,
+        profanity_filter=False
     )
     
     gather.say(
@@ -97,10 +99,12 @@ def continue_call():
     gather = resp.gather(
         input='speech dtmf',
         action='/process-intent',
-        timeout=3,
-        speech_timeout='auto',
+        timeout=4,
+        speech_timeout='3',
         language='en-US',
-        num_digits=1
+        num_digits=1,
+        enhanced=True,
+        profanity_filter=False
     )
     
     gather.say(
@@ -209,7 +213,7 @@ def process_intent():
             input='speech',
             action='/process-clarification',
             timeout=3,
-            speech_timeout='auto'
+            speech_timeout='3'
         )
         
         return str(resp)
@@ -268,7 +272,7 @@ def process_clarification():
                 input='speech',
                 action='/process-clarification',
                 timeout=5,
-                speech_timeout='auto'
+                speech_timeout='3'
             )
             return str(resp)
         
@@ -340,7 +344,7 @@ def process_clarification():
                 input='speech',
                 action='/process-clarification',
                 timeout=5,
-                speech_timeout='auto'
+                speech_timeout='3'
             )
             return str(resp)
     
@@ -506,7 +510,7 @@ def self_service():
         method='POST',
         timeout=5,
         num_digits=1,
-        speech_timeout='auto'
+        speech_timeout='3'
     )
     
     gather.say(
@@ -561,7 +565,7 @@ def transfer_agent():
         action='/process-transfer-choice',
         timeout=5,
         num_digits=1,
-        speech_timeout='auto'
+        speech_timeout='3'
     )
     
     gather.say(
@@ -646,7 +650,7 @@ def no_input_handler():
         action='/process-intent',
         timeout=3,
         num_digits=1,
-        speech_timeout='auto'
+        speech_timeout='3'
     )
     
     gather.say(
@@ -677,7 +681,7 @@ def payment_options():
             action='/process-payment-choice',
             timeout=5,
             num_digits=1,
-            speech_timeout='auto'
+            speech_timeout='3'
         )
         
         gather.say(
@@ -763,7 +767,7 @@ def payment_methods():
         method='POST',
         timeout=5,
         num_digits=1,
-        speech_timeout='auto'
+        speech_timeout='3'
     )
     
     gather.say(
@@ -791,7 +795,7 @@ def provider_collect_name():
         input='speech',
         action=f'/provider-collect-zip?phone={phone}',
         timeout=5,
-        speech_timeout='auto'
+        speech_timeout='3'
     )
     
     gather.say(
@@ -829,7 +833,7 @@ def provider_collect_zip():
         input='speech dtmf',
         action=f'/provider-confirm?phone={phone}',
         timeout=5,
-        speech_timeout='auto',
+        speech_timeout='3',
         num_digits=5
     )
     
@@ -880,7 +884,7 @@ def provider_confirm():
         method='POST',
         timeout=5,
         num_digits=1,
-        speech_timeout='auto'
+        speech_timeout='3'
     )
     
     gather.say(
@@ -937,7 +941,7 @@ def provider_email_verify():
                 input='speech',
                 action='/provider-email-collected',
                 timeout=10,
-                speech_timeout='auto'
+                speech_timeout='3'
             )
             
             return str(resp)
