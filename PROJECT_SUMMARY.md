@@ -50,6 +50,10 @@
 - Transfer option for denied claims
 
 **Patterns:** 25+ regex patterns covering claim, reimbursement, status, tracking, payment
+- "I need to find a provider"
+- "Where is my claim?"
+- "What does my policy cover?"
+- "When is my payment due?"
 
 ### 2. PAYMENT
 **What it handles:**

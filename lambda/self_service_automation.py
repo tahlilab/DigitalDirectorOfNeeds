@@ -113,7 +113,7 @@ def handle_claim_status(phone: str, params: Dict) -> Dict[str, Any]:
         if invoices_needed:
             if invoices_received < invoices_total:
                 message += f"We've got {invoices_received} of the {invoices_total} invoices we need. "
-                message += "If you can send the rest over, that'll speed things up. Fax to 1-800-555-9999 or toss them on our website. "
+                message += "If you can send the rest over, that'll speed things up. You can upload them on our website at johnhancockltc.com. "
             else:
                 message += "We've got all your invoices and the team's going through everything. "
         

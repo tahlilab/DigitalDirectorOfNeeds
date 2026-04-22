@@ -1320,7 +1320,7 @@ def index():
             <li>Get your ngrok URL (should be running on another terminal)</li>
             <li>Configure Twilio number:
                 <ul>
-                    <li>Voice & Fax → "A call comes in"</li>
+                    <li>Voice → "A call comes in"</li>
                     <li>Webhook: <code>https://YOUR_NGROK_URL/voice</code></li>
                     <li>HTTP POST</li>
                 </ul>
