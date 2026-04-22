@@ -36,6 +36,32 @@ app = Flask(__name__)
 sessions = {}
 
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Global error handler - always return valid TwiML so Twilio never says 'application error'."""
+    print(f"❌ Unhandled error: {e}")
+    resp = VoiceResponse()
+    resp.say(
+        "Sorry about that, something went wrong on our end. Let me get you to someone who can help.",
+        voice='Polly.Salli-Neural'
+    )
+    resp.redirect('/transfer-agent')
+    return str(resp), 200
+
+
+@app.errorhandler(404)
+def handle_not_found(e):
+    """Handle unknown routes - return valid TwiML."""
+    print(f"❌ 404: {request.path}")
+    resp = VoiceResponse()
+    resp.say(
+        "Sorry about that. Let me get you to someone who can help.",
+        voice='Polly.Salli-Neural'
+    )
+    resp.redirect('/transfer-agent')
+    return str(resp), 200
+
+
 def format_phone_number(phone: str) -> str:
     """Format phone number for speech (e.g., +15551234567 -> 555-123-4567)"""
     digits = ''.join(filter(str.isdigit, phone))
@@ -177,29 +203,39 @@ def process_intent():
     
     # Call GPT-4o intent classifier
     if gpt4o_handler:
-        event = {
-            'Details': {
-                'Parameters': {
-                    'transcription': utterance,
-                    'phoneNumber': from_number
+        try:
+            event = {
+                'Details': {
+                    'Parameters': {
+                        'transcription': utterance,
+                        'phoneNumber': from_number
+                    }
                 }
             }
-        }
-        
-        result = gpt4o_handler(event, None)
-        print(f"✅ GPT-4o Result: {result}")
-        
-        # Log AI recommendations if available
-        if 'recommendations' in result:
-            recs = result['recommendations']
-            print(f"🤖 AI Recommendations:")
-            print(f"   Primary Action: {recs.get('primaryAction', 'N/A')}")
-            print(f"   Secondary Actions: {len(recs.get('secondaryActions', []))} items")
-            print(f"   Customer Experience: {recs.get('customerExperience', 'N/A')}")
-        
-        # Store in session
-        if call_sid in sessions:
-            sessions[call_sid].update(result)
+            
+            result = gpt4o_handler(event, None)
+            print(f"✅ GPT-4o Result: {result}")
+            
+            # Log AI recommendations if available
+            if 'recommendations' in result:
+                recs = result['recommendations']
+                print("🤖 AI Recommendations:")
+                print(f"   Primary Action: {recs.get('primaryAction', 'N/A')}")
+                print(f"   Secondary Actions: {len(recs.get('secondaryActions', []))} items")
+                print(f"   Customer Experience: {recs.get('customerExperience', 'N/A')}")
+            
+            # Store in session
+            if call_sid in sessions:
+                sessions[call_sid].update(result)
+        except Exception as e:
+            print(f"❌ Classifier error: {e}")
+            resp = VoiceResponse()
+            resp.say(
+                "Sorry, I'm having a little trouble. Let me get you to someone who can help.",
+                voice='Polly.Salli-Neural'
+            )
+            resp.redirect('/transfer-agent')
+            return str(resp)
     else:
         # Mock response
         result = {
@@ -213,7 +249,10 @@ def process_intent():
     resp = VoiceResponse()
     
     # Route based on confidence
-    confidence = int(result.get('confidence', '0'))
+    try:
+        confidence = int(result.get('confidence', '0'))
+    except (ValueError, TypeError):
+        confidence = 0
     intent_name = result.get('intentName', 'UNKNOWN')
     
     if confidence < 70:
@@ -308,21 +347,31 @@ def process_clarification():
     
     # Process the clarified intent
     if gpt4o_handler:
-        event = {
-            'Details': {
-                'Parameters': {
-                    'utterance': utterance,
-                    'transcription': utterance,
-                    'phoneNumber': from_number
+        try:
+            event = {
+                'Details': {
+                    'Parameters': {
+                        'utterance': utterance,
+                        'transcription': utterance,
+                        'phoneNumber': from_number
+                    }
                 }
             }
-        }
-        
-        result = gpt4o_handler(event, None)
-        print(f"✅ GPT-4o Result: {result}")
-        
-        if call_sid in sessions:
-            sessions[call_sid].update(result)
+            
+            result = gpt4o_handler(event, None)
+            print(f"✅ GPT-4o Result: {result}")
+            
+            if call_sid in sessions:
+                sessions[call_sid].update(result)
+        except Exception as e:
+            print(f"❌ Classifier error in clarification: {e}")
+            resp = VoiceResponse()
+            resp.say(
+                "Sorry, I'm having a little trouble. Let me get you to someone who can help.",
+                voice='Polly.Salli-Neural'
+            )
+            resp.redirect('/transfer-agent')
+            return str(resp)
     else:
         # Mock response
         result = {
@@ -336,7 +385,10 @@ def process_clarification():
     resp = VoiceResponse()
     
     # Check confidence again
-    confidence = int(result.get('confidence', '0'))
+    try:
+        confidence = int(result.get('confidence', '0'))
+    except (ValueError, TypeError):
+        confidence = 0
     
     if confidence < 70:
         # Still low confidence after clarification
