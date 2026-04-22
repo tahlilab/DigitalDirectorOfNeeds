@@ -18,6 +18,7 @@ import sys
 import os
 from pathlib import Path
 from datetime import datetime
+from urllib.parse import quote
 
 # Import Lambda functions
 sys.path.append(str(Path(__file__).parent / 'lambda'))
@@ -590,7 +591,8 @@ def anything_else():
     
     # They said something specific - treat it as a new request, send to intent processing
     if response:
-        resp.redirect(f'/process-intent?SpeechResult={response}&From={from_number}')
+        encoded_response = quote(response)
+        resp.redirect(f'/process-intent?SpeechResult={encoded_response}&From={quote(from_number)}')
         return str(resp)
     
     # Fallback
