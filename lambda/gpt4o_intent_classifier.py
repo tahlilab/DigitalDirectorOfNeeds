@@ -275,6 +275,11 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
             r'help.*with.*care',
             r'where.*do.*i.*go',
             r'how.*do.*i.*find',
+            # Add/get a provider
+            r'add.*provider',
+            r'get.*provider',
+            r'add.*a.*provider',
+            r'get.*a.*provider',
             # Helper Bees specific
             r'helper.*bees',
             r'referral',
