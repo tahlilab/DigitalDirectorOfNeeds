@@ -12,18 +12,18 @@
 
 1. **Twilio Voice Webhook** (`twilio_webhook.py`)
    - Flask-based web server handling incoming phone calls
-   - Routes: `/voice`, `/process-intent`, `/self-service`, `/transfer-agent`, `/payment-options`, `/anything-else`, `/goodbye`
+   - Routes: `/voice`, `/continue-call`, `/process-intent`, `/process-clarification`, `/self-service`, `/transfer-agent`, `/process-transfer-choice`, `/payment-options`, `/process-payment-choice`, `/payment-methods`, `/provider-collect-name`, `/provider-collect-zip`, `/provider-confirm`, `/anything-else`, `/no-input-handler`, `/goodbye`, `/status`
    - Integrates with Lambda functions for AI classification and self-service
    - Deployed on Render.com for production testing
 
 2. **GPT-4o Intent Classifier** (`lambda/gpt4o_intent_classifier.py`)
-   - Classifies customer utterances into 5 intent categories
+   - Classifies customer utterances into 6 intent categories
    - Generates AI-powered recommendations for next steps
    - Detects sentiment, relationship type, and authentication requirements
    - Returns confidence scores and self-service eligibility
 
 3. **Self-Service Automation** (`lambda/self_service_automation.py`)
-   - Handles automated responses for 4 self-serviceable intents
+   - Handles automated responses for 5 self-serviceable intents
    - Mock data lookups (replaces Salesforce in production)
    - Provides complete, proactive information to reduce repeat calls
 
@@ -117,26 +117,24 @@
 - "Need a care facility"
 
 **Response includes:**
-- Partnership introduction (The Helper Bees)
-- Email verification for outreach
+- Name and zip code collection for provider matching
 - SLA expectation (1-2 business days)
 - Automatic Salesforce Health Cloud note creation
-- **Retry logic:** 2 attempts with clearer options before agent transfer
+- **Retry logic:** 2 attempts with clearer prompts before agent transfer
 
 **Flow:**
 1. Customer requests provider help
-2. System explains Helper Bees partnership
-3. Verifies email address on file
-4. Creates Salesforce note
+2. System collects provider name
+3. System collects zip code
+4. Confirms details and submits referral
 5. Sets expectation for 1-2 day response
-6. Daily SFTP feed to Helper Bees
-7. Email outreach with provider options
+6. Provider outreach with care options
 
-**Patterns:** 20+ regex patterns covering provider, doctor, facility, nursing home, assisted living, home care
+**Patterns:** 50+ regex patterns covering provider, doctor, facility, nursing home, assisted living, home care, add provider, get provider
 
 **Voice Recognition Retries:**
-- **Attempt 1:** "Sorry, didn't catch that. Is that email still good? Say yes or no."
-- **Attempt 2:** "Hmm, having trouble hearing you. Say 'yes' if the email is good, or 'no' if you need to update it."
+- **Attempt 1:** Re-prompts with clearer instructions
+- **Attempt 2:** Simplified prompt
 - **After 2 attempts:** Transfer to agent with friendly handoff
 
 ---
@@ -246,7 +244,7 @@ Customer Experience: "Customer shows frustration - use empathetic language"
 8. [Call ends - no hold abandonment]
 ```
 
-### Example 4: Provider Referral (with Retry Logic)
+### Example 4: Provider Referral (Name + Zip Collection)
 ```
 1. Customer: "I need to find a nursing home"
 2. [GPT-4o Classification]
@@ -254,18 +252,13 @@ Customer Experience: "Customer shows frustration - use empathetic language"
    - Sentiment: neutral
    - Can self-serve: true
 3. System: "Let me look that up for you." [2 sec pause]
-4. System: "Got it! So we partner with The Helper Bees - they're really helpful at finding providers."
-5. System: "I'm gonna put in a request for them to reach out."
-6. System: "Quick thing - is customer7738@example.com still the best email for you?"
-7. Customer: [Background noise - system doesn't catch response]
-8. [Retry Attempt 1]
-9. System: "Sorry, didn't catch that. Is that email still good? Say yes or no."
-10. Customer: [Still unclear]
-11. [Retry Attempt 2]
-12. System: "Hmm, having trouble hearing you. Say 'yes' if the email is good, or 'no' if you need to update it."
-13. Customer: "Yes"
-14. System: "Perfect! I've put in the request. The Helper Bees will email you within 1-2 business days with provider options."
-15. System: "They're really good at finding exactly what you need. Anything else I can help with?"
+4. System: "Got it! I just need a couple things to get this going."
+5. System: "What's the name of the provider or type of care you're looking for?"
+6. Customer: "Sunrise Senior Living"
+7. System: "Got it. And what's the zip code where you're looking for care?"
+8. Customer: "02101"
+9. System: "I'm sending that over now. You should hear back within 1 to 2 business days with options and next steps."
+10. System: "Is there anything else I can help you with?"
 ```
 
 ### Example 5: Low Confidence with Clarification (Leading to Provider)
@@ -281,8 +274,8 @@ Customer Experience: "Customer shows frustration - use empathetic language"
    - Intent: PROVIDER_REFERRAL (92% confidence)
    - Can self-serve: true
 7. System: "Let me look that up for you." [2 sec pause]
-8. System: "Got it! So we partner with The Helper Bees - they're really helpful at finding providers..."
-9. [Proceeds to provider referral flow with email verification]
+8. System: "Got it! I just need a couple things to get this going."
+9. [Proceeds to provider referral flow with name + zip collection]
 ```
 
 ### Example 6: DTMF Quick Menu (No Speech)
@@ -350,9 +343,9 @@ Customer Experience: "Customer shows frustration - use empathetic language"
   - **Attempt 2:** "Let me try to help. Say 'claim' for claim status, 'payment' for billing, 'coverage' for benefits, 'provider' to find care, 'rate' for rate questions, or 'agent' to speak with someone."
   - **After 2 attempts:** "Let me connect you with someone who can help you better." → Transfer to agent
 
-- **Provider Email Verification:** Clearer yes/no questions
-  - **Attempt 1:** "Sorry, didn't catch that. Is that email still good? Say yes or no."
-  - **Attempt 2:** "Hmm, having trouble hearing you. Say 'yes' if the email is good, or 'no' if you need to update it."
+- **Provider Name/Zip Collection:** Re-prompts with clearer instructions
+  - **Attempt 1:** Re-asks for provider name or zip with simpler phrasing
+  - **Attempt 2:** Further simplified prompt
   - **After 2 attempts:** "Alright, let me get you to someone who can help set this up." → Transfer to agent
 
 - **Benefits:**
@@ -382,7 +375,7 @@ def classify_with_rules(utterance: str):
     # Self-service determination
     if confidence < 0.85:
         can_self_serve = False
-    elif intent not in ['CLAIM_STATUS', 'PAYMENT', 'COVERAGE_INQUIRY', 'RATE_INCREASE']:
+    elif intent not in ['CLAIM_STATUS', 'PAYMENT', 'COVERAGE_INQUIRY', 'RATE_INCREASE', 'PROVIDER_REFERRAL']:
         can_self_serve = False
     elif relationship == 'third_party':
         can_self_serve = False  # Requires POA verification
@@ -574,10 +567,10 @@ python lambda/gpt4o_intent_classifier.py
 
 ```
 DigitalDirectorOfNeeds/
-├── twilio_webhook.py           # Main Flask webhook server (756 lines)
+├── twilio_webhook.py           # Main Flask webhook server (~1106 lines)
 ├── lambda/
-│   ├── gpt4o_intent_classifier.py  # Intent classification + AI recs (478 lines)
-│   └── self_service_automation.py  # Self-service handlers (392 lines)
+│   ├── gpt4o_intent_classifier.py  # Intent classification + AI recs (~680 lines)
+│   └── self_service_automation.py  # Self-service handlers (~492 lines)
 ├── requirements.txt            # Python dependencies
 ├── README.md                   # Project overview
 ├── PROJECT_SUMMARY.md          # This file
@@ -586,7 +579,7 @@ DigitalDirectorOfNeeds/
 ├── 3_LTC_Claims_Selfservice.json        # Claims flow
 └── .gitignore
 
-Total Code: ~1,626 lines of production Python
+Total Code: ~2,278 lines of production Python
 ```
 
 ---
@@ -639,7 +632,7 @@ redis==5.0.0                      # Session storage
 10. ✅ **No Silent Holds** - Periodic updates prevent hangups
 11. ✅ **Third-Party Detection** - POA verification required
 12. ✅ **Mock Data System** - Phone-based testing without live APIs
-13. ✅ **Provider Referral Flow** - Helper Bees partnership with email verification
+13. ✅ **Provider Referral Flow** - Name + zip collection with 1-2 day SLA
 14. ✅ **Intelligent Retry Logic** - 2-attempt system with progressive clarification before agent transfer
 
 ---
@@ -651,7 +644,7 @@ redis==5.0.0                      # Session storage
 - [x] AI recommendations engine
 - [x] Callback option implementation
 - [x] Interactive payment flow
-- [x] Provider referral flow with Helper Bees integration
+- [x] Provider referral flow with name + zip collection
 - [x] Intelligent retry logic (2-attempt system)
 - [ ] A/B testing on live calls
 - [ ] Analyze call transcripts for missed patterns
@@ -697,6 +690,6 @@ See LICENSE file for details.
 
 ---
 
-**Last Updated:** April 21, 2026  
-**Version:** 1.0  
+**Last Updated:** April 22, 2026  
+**Version:** 1.1  
 **Status:** Production Testing (Render) / Pending AWS Lambda Deployment
