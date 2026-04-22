@@ -122,13 +122,21 @@
 - Automatic Salesforce Health Cloud note creation
 - **Retry logic:** 2 attempts with clearer prompts before agent transfer
 
-**Flow:**
-1. Customer requests provider help
-2. System collects provider name
-3. System collects zip code
-4. Confirms details and submits referral
-5. Sets expectation for 1-2 day response
-6. Provider outreach with care options
+**Dual-Path Flow:**
+- **"Find a provider"** → Helper Bees partnership intro → collect name + zip → Helper Bees confirmation
+- **"Add a provider"** → Simple collection → collect name + zip → Generic confirmation
+
+**Find Provider Flow:**
+1. Customer: "I need to find a nursing home"
+2. System: "We partner with The Helper Bees - they're really helpful at finding providers. I just need a couple things..."
+3. System collects provider name + zip code
+4. System: "I'm sending that over to The Helper Bees now. You should hear back within 1 to 2 business days with provider options. They're really good at matching you with the right care."
+
+**Add Provider Flow:**
+1. Customer: "I want to add a provider"
+2. System: "Got it! I just need a couple things to get this going."
+3. System collects provider name + zip code
+4. System: "I'm sending that over now. You should hear back within 1 to 2 business days with options and next steps."
 
 **Patterns:** 50+ regex patterns covering provider, doctor, facility, nursing home, assisted living, home care, add provider, get provider
 
@@ -244,20 +252,21 @@ Customer Experience: "Customer shows frustration - use empathetic language"
 8. [Call ends - no hold abandonment]
 ```
 
-### Example 4: Provider Referral (Name + Zip Collection)
+### Example 4: Provider Referral - Find Provider (Helper Bees)
 ```
 1. Customer: "I need to find a nursing home"
 2. [GPT-4o Classification]
    - Intent: PROVIDER_REFERRAL (88% confidence)
+   - Sub-type: find
    - Sentiment: neutral
    - Can self-serve: true
 3. System: "Let me look that up for you." [2 sec pause]
-4. System: "Got it! I just need a couple things to get this going."
+4. System: "We partner with The Helper Bees - they're really helpful at finding providers. I just need a couple things to get this going."
 5. System: "What's the name of the provider or type of care you're looking for?"
 6. Customer: "Sunrise Senior Living"
 7. System: "Got it. And what's the zip code where you're looking for care?"
 8. Customer: "02101"
-9. System: "I'm sending that over now. You should hear back within 1 to 2 business days with options and next steps."
+9. System: "I'm sending that over to The Helper Bees now. You should hear back within 1 to 2 business days with provider options. They're really good at matching you with the right care."
 10. System: "Is there anything else I can help you with?"
 ```
 
@@ -632,7 +641,7 @@ redis==5.0.0                      # Session storage
 10. ✅ **No Silent Holds** - Periodic updates prevent hangups
 11. ✅ **Third-Party Detection** - POA verification required
 12. ✅ **Mock Data System** - Phone-based testing without live APIs
-13. ✅ **Provider Referral Flow** - Name + zip collection with 1-2 day SLA
+13. ✅ **Provider Referral Flow** - Dual-path: Helper Bees for finding providers, simple flow for adding providers
 14. ✅ **Intelligent Retry Logic** - 2-attempt system with progressive clarification before agent transfer
 
 ---

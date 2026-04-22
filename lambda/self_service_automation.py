@@ -264,10 +264,18 @@ def handle_provider_referral(phone: str, params: Dict) -> Dict[str, Any]:
     if not customer_data:
         return error_response("No customer information found")
     
-    # Create Salesforce Health Cloud note (would happen via API in production)
-    # This would trigger: notification to THB, daily SFTP feed, email outreach
+    provider_sub_type = params.get('providerSubType', 'find')
     
-    message = "Got it! I just need a couple things to get this going. "
+    if provider_sub_type == 'add':
+        # Adding a specific provider - no Helper Bees needed
+        message = "Got it! I just need a couple things to get this going. "
+    else:
+        # Finding a provider - Helper Bees partnership
+        message = (
+            "Got it! So we partner with The Helper Bees - "
+            "they're really helpful at finding providers. "
+            "I just need a couple things to get this going. "
+        )
     
     return {
         'responseMessage': message,

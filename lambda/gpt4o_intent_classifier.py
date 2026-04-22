@@ -373,6 +373,15 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
                     call_type = 'Agent'
                 break
     
+    # Detect provider sub-type (add vs find)
+    provider_sub_type = 'find'
+    if intent_name == 'PROVIDER_REFERRAL':
+        add_patterns = [r'add.*provider', r'add.*a.*provider']
+        for pattern in add_patterns:
+            if re.search(pattern, utterance_lower):
+                provider_sub_type = 'add'
+                break
+
     # Determine auth tier needed
     auth_tier = determine_auth_tier(intent_name, relationship)
     
@@ -397,6 +406,7 @@ def classify_with_rules(utterance: str) -> Dict[str, Any]:
         'entity': entity,
         'sentiment': sentiment,
         'canSelfServe': 'true' if can_self_serve else 'false',
+        'providerSubType': provider_sub_type,
         'utterance': utterance,
         'recommendations': recommendations
     }

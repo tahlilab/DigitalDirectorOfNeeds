@@ -437,11 +437,17 @@ def self_service():
     # Call self-service automation
     if selfserve_handler:
         try:
+            # Pass providerSubType if available (find vs add)
+            provider_sub_type = ''
+            if call_sid in sessions:
+                provider_sub_type = sessions[call_sid].get('providerSubType', 'find')
+            
             event = {
                 'Details': {
                     'Parameters': {
                         'intentName': intent,
-                        'phoneNumber': phone
+                        'phoneNumber': phone,
+                        'providerSubType': provider_sub_type
                     }
                 }
             }
@@ -907,12 +913,26 @@ def provider_confirm():
     
     print(f"📍 Provider zip collected: '{zip_code}' for provider: '{provider_name}'")
     
-    resp.say(
-        f"Perfect! I've got {provider_name} in zip code {zip_code}. "
-        "I'm sending that over now. "
-        "You should hear back within 1 to 2 business days with options and next steps.",
-        voice='Polly.Salli-Neural'
-    )
+    # Different confirm message based on sub-type (find vs add)
+    provider_sub_type = 'find'
+    if call_sid in sessions:
+        provider_sub_type = sessions[call_sid].get('providerSubType', 'find')
+    
+    if provider_sub_type == 'add':
+        confirm_msg = (
+            f"Perfect! I've got {provider_name} in zip code {zip_code}. "
+            "I'm sending that over now. "
+            "You should hear back within 1 to 2 business days with options and next steps."
+        )
+    else:
+        confirm_msg = (
+            f"Perfect! I've got {provider_name} in zip code {zip_code}. "
+            "I'm sending that over to The Helper Bees now. "
+            "You should hear back within 1 to 2 business days with provider options. "
+            "They're really good at matching you with the right care."
+        )
+    
+    resp.say(confirm_msg, voice='Polly.Salli-Neural')
     
     resp.pause(length=1)
     
